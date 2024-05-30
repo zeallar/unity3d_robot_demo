@@ -19,7 +19,7 @@ MonoBehaviour:
     width: 1716
     height: 973
   m_ShowMode: 4
-  m_Title: Game
+  m_Title: Hierarchy
   m_RootView: {fileID: 8}
   m_MinSize: {x: 875, y: 300}
   m_MaxSize: {x: 10000, y: 10000}
@@ -96,8 +96,8 @@ MonoBehaviour:
     y: 30
     width: 1716
     height: 923
-  m_MinSize: {x: 677, y: 342}
-  m_MaxSize: {x: 12002, y: 8042}
+  m_MinSize: {x: 679, y: 342}
+  m_MaxSize: {x: 12004, y: 8042}
   vertical: 0
   controlID: 39
 --- !u!114 &5
@@ -119,8 +119,8 @@ MonoBehaviour:
     y: 0
     width: 474
     height: 615
-  m_MinSize: {x: 275, y: 50}
-  m_MaxSize: {x: 4000, y: 4000}
+  m_MinSize: {x: 276, y: 71}
+  m_MaxSize: {x: 4001, y: 4021}
   m_ActualView: {fileID: 18}
   m_Panes:
   - {fileID: 18}
@@ -275,10 +275,10 @@ MonoBehaviour:
     y: 0
     width: 1242
     height: 923
-  m_MinSize: {x: 401, y: 342}
-  m_MaxSize: {x: 8001, y: 8042}
+  m_MinSize: {x: 403, y: 342}
+  m_MaxSize: {x: 8003, y: 8042}
   vertical: 1
-  controlID: 127
+  controlID: 49
 --- !u!114 &12
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -300,10 +300,10 @@ MonoBehaviour:
     y: 0
     width: 1242
     height: 589
-  m_MinSize: {x: 401, y: 221}
-  m_MaxSize: {x: 8001, y: 4021}
+  m_MinSize: {x: 403, y: 221}
+  m_MaxSize: {x: 8003, y: 4021}
   vertical: 0
-  controlID: 128
+  controlID: 50
 --- !u!114 &13
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -323,8 +323,8 @@ MonoBehaviour:
     y: 0
     width: 876
     height: 589
-  m_MinSize: {x: 200, y: 200}
-  m_MaxSize: {x: 4000, y: 4000}
+  m_MinSize: {x: 202, y: 221}
+  m_MaxSize: {x: 4002, y: 4021}
   m_ActualView: {fileID: 20}
   m_Panes:
   - {fileID: 20}
@@ -482,21 +482,21 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/Scripts
+    - Assets/Scripts/Modify_script
     m_Globs: []
   m_ViewMode: 1
   m_StartGridSize: 16
   m_LastFolders:
-  - Assets/Scripts
+  - Assets/Scripts/Modify_script
   m_LastFoldersGridSize: 16
   m_LastProjectPath: "F:\\unity3d_work\\ChaMoveExample04\u6309\u94AE\u8DF3\u8F6C\\ChaMoveExample"
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 28}
-    m_SelectedIDs: a4400000
-    m_LastClickedID: 16548
-    m_ExpandedIDs: 000000004a4000004c4000004e4000005040000052400000
+    scrollPos: {x: 0, y: 43}
+    m_SelectedIDs: b8400000
+    m_LastClickedID: 16568
+    m_ExpandedIDs: 000000005c4000005e400000604000006240000064400000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -524,7 +524,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: 000000004a4000004c4000004e4000005040000052400000
+    m_ExpandedIDs: 000000005c4000005e400000604000006240000064400000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -549,8 +549,8 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
   m_ListAreaState:
-    m_SelectedInstanceIDs: 923e0000
-    m_LastClickedInstanceID: 16018
+    m_SelectedInstanceIDs: 
+    m_LastClickedInstanceID: 0
     m_HadKeyboardFocusLastEvent: 1
     m_ExpandedInstanceIDs: c6230000
     m_RenameOverlay:
@@ -612,7 +612,7 @@ MonoBehaviour:
     m_ControlHash: -371814159
     m_PrefName: Preview_InspectorPreview
   m_LastInspectedObjectInstanceID: -1
-  m_LastVerticalScrollValue: 0
+  m_LastVerticalScrollValue: 621
   m_AssetGUID: 
   m_InstanceID: 0
   m_LockTracker:
@@ -646,8 +646,8 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: 
-      m_LastClickedID: 0
+      m_SelectedIDs: a63e0000
+      m_LastClickedID: 16038
       m_ExpandedIDs: 62fbffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
@@ -759,7 +759,7 @@ MonoBehaviour:
   m_Rotation:
     m_Target: {x: -0.24819046, y: 0.000578272, z: -0.00014860644, w: -0.96871775}
     speed: 2
-    m_Value: {x: -0.24818887, y: 0.00057826826, z: -0.00014860548, w: -0.9687115}
+    m_Value: {x: -0.24819045, y: 0.000578272, z: -0.00014860644, w: -0.9687177}
   m_Size:
     m_Target: 116.83087
     speed: 2

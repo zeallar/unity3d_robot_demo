@@ -59,9 +59,9 @@ public class SensorDataProcessor : MonoBehaviour
         //Debug.Log("陀螺仪数据校正后：" + string.Join(", ", gyroDataFinal.Select(v => v.ToString()).ToArray()));
         //Debug.Log("磁力计数据校正后：" + string.Join(", ", magDataFinal.Select(v => v.ToString()).ToArray()));
 
-        Logger.Info("加速度数据阈值处理前：" + string.Join(", ", accDataFiltered.Select(v => v.ToString()).ToArray()));
-        Logger.Info("陀螺仪数据阈值处理前：" + string.Join(", ", gyroDataFiltered.Select(v => v.ToString()).ToArray()));
-        Logger.Info("磁力计数据阈值处理前：" + string.Join(", ", magDataFiltered.Select(v => v.ToString()).ToArray()));
+        //Logger.Info("加速度数据阈值处理前：" + string.Join(", ", accDataFiltered.Select(v => v.ToString()).ToArray()));
+        //Logger.Info("陀螺仪数据阈值处理前：" + string.Join(", ", gyroDataFiltered.Select(v => v.ToString()).ToArray()));
+        //Logger.Info("磁力计数据阈值处理前：" + string.Join(", ", magDataFiltered.Select(v => v.ToString()).ToArray()));
 
 
 

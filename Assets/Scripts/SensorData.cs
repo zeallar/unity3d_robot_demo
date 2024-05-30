@@ -49,7 +49,7 @@ public class SensorData : MonoBehaviour
                 this.accelZ = accelY;
                 hasNewAccelData = true; // 设置标志位
 
-                string accelLog = $"设置 加速度X: {accelX/100}, Y: {this.accelY/100}, Z: {this.accelZ/100}";
+                string accelLog = $"设置 加速度X: {accelX / 100}, Y: {this.accelY / 100}, Z: {this.accelZ / 100}";
                 //Debug.Log(accelLog);
                 //Logger.Info(accelLog);
             }

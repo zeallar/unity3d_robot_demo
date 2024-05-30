@@ -158,21 +158,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: -927199367670048503, guid: 320b1c2af77554f99a1658df4a6d3d5c, type: 3}
   m_PrefabInstance: {fileID: 1866952719}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &897489237
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 897489236}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e3677399005ab14cac4543ad976f707, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  portName: COM26
-  baudRate: 115200
-  timeoutMilliseconds: 1000
 --- !u!114 &897489238
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -182,9 +167,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 897489236}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 19a71145e6a1eab4cbc8e86728881c4e, type: 3}
+  m_Script: {fileID: 11500000, guid: ffc3df271f3278742a0668f03a03cdb2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  quaternion: {x: 0, y: 0, z: 0, w: 1}
+  eulerAngles: {x: 0, y: 0, z: 0}
 --- !u!114 &897489239
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -192,14 +179,11 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 897489236}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4b65890e37b466d4d89ec842009fce14, type: 3}
+  m_Script: {fileID: 11500000, guid: c53bc3961cd0c7249bb26a869931d29d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 3
-  turnSpeed: 10
-  jumpForce: 50
 --- !u!136 &897489240
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -230,21 +214,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!114 &897489242
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 897489236}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e95de0654b46bd6498bb48bb819e03b5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 3
-  turnSpeed: 10
-  threshold: 0.3
 --- !u!114 &897489243
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -258,6 +227,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hasNewAccelData: 0
+--- !u!114 &897489244
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897489236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac66233620a41e24e9672ae27545b384, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  accelOffset: {x: 0, y: 0, z: 0}
+  gyroOffset: {x: 0, y: 0, z: 0}
+  magOffset: {x: 0, y: 0, z: 0}
+--- !u!114 &897489245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 897489236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e535e44d165c8c4a861f06c292f2659, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1866952719
 PrefabInstance:
   m_ObjectHideFlags: 0

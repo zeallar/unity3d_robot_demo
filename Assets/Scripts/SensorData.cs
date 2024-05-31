@@ -28,7 +28,9 @@ public class SensorData : MonoBehaviour
     private readonly object gyroLock = new object();
     private readonly object magLock = new object();
 
-    public bool hasNewAccelData = false;  // 新增标志位
+    public bool hasNewlData = false;  // 新增标志位
+    public bool hasNewlgyroData = false;  // 新增标志位
+    public bool hasNewlmagData = false;  // 新增标志位
     public void SetTemp(float temp)
     {
         lock (tempLock)
@@ -42,16 +44,16 @@ public class SensorData : MonoBehaviour
     {
         lock (accelLock)
         {
-            if (!IsZeroData(accelX, accelY, accelZ))
+            if (!IsZeroData(accelX, accelY, accelZ)&& hasNewlData == false)
             {
-                this.accelX = accelX;
-                this.accelY = accelZ; // 模块的z和y与Unity3D的不同，互换一下。
-                this.accelZ = accelY;
-                hasNewAccelData = true; // 设置标志位
+                this.accelX = accelX/100;
+                this.accelY = accelY/100; // 模块的z和y与Unity3D的不同，互换一下。
+                this.accelZ = accelZ/100;
+                hasNewlData = true; // 设置标志位
 
-                string accelLog = $"设置 加速度X: {accelX / 100}, Y: {this.accelY / 100}, Z: {this.accelZ / 100}";
-                //Debug.Log(accelLog);
-                //Logger.Info(accelLog);
+                string accelLog = $"加速度X: {this.accelX}, Y: {this.accelY}, Z: {this.accelZ}";
+                Debug.Log(accelLog);
+                Logger.Info(accelLog);
             }
         }
     }
@@ -60,7 +62,7 @@ public class SensorData : MonoBehaviour
     {
         lock (gyroLock)
         {
-            if (!IsZeroData(gyroX, gyroY, gyroZ))
+            if (!IsZeroData(gyroX, gyroY, gyroZ) && hasNewlgyroData == false)
             {
                 //this.gyroX = gyroX;
                 //this.gyroY = gyroY;
@@ -69,9 +71,9 @@ public class SensorData : MonoBehaviour
                 this.gyroX = gyroX / 100;
                 this.gyroY = gyroY / 100;
                 this.gyroZ = gyroZ / 100;
-
+                hasNewlgyroData = true; // 设置标志位
                 string gyroLog = $"陀螺仪X: {this.gyroX}, Y: {this.gyroY}, Z: {this.gyroZ}";
-                Debug.Log(gyroLog);
+                //Debug.Log(gyroLog);
                 Logger.Info(gyroLog);
             }
         }
@@ -81,18 +83,20 @@ public class SensorData : MonoBehaviour
     {
         lock (magLock)
         {
-            if (!IsZeroData(magX, magY, magZ))
+            if (!IsZeroData(magX, magY, magZ) && hasNewlmagData == false)
             {
+                magX /= 100f;
+                magY /= 100f;
+                magZ /= 100f;
                 this.magX = magX;
                 this.magY = magY;
                 this.magZ = magZ;
 
-                magX /= 100f;
-                magY /= 100f;
-                magZ /= 100f;
-                string magLog = $"磁力计X: {magX}, Y: {magY}, Z: {magZ}";
+
+                hasNewlmagData = true; // 设置标志位
+                string magLog = $"磁力计X: {this.magX}, Y: {this.magY}, Z: {this.magZ}";
                 //Debug.Log(magLog);
-                //Logger.Info(magLog);
+                Logger.Info(magLog);
             }
         }
     }
@@ -109,9 +113,11 @@ public class SensorData : MonoBehaviour
     {
         lock (accelLock)
         {
+
             accelX = this.accelX;
             accelY = this.accelY;
             accelZ = this.accelZ;
+            hasNewlData = false; // 设置标志位
         }
     }
 
@@ -122,6 +128,7 @@ public class SensorData : MonoBehaviour
             gyroX = this.gyroX;
             gyroY = this.gyroY;
             gyroZ = this.gyroZ;
+            hasNewlgyroData = false; // 设置标志位
         }
     }
 
@@ -132,6 +139,7 @@ public class SensorData : MonoBehaviour
             magX = this.magX;
             magY = this.magY;
             magZ = this.magZ;
+            hasNewlmagData = false; // 设置标志位
         }
     }
 

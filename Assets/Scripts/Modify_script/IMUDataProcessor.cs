@@ -24,7 +24,7 @@ public class IMUDataProcessor : MonoBehaviour
         gyroData = ApplyWindowFilter(gyroDataQueue, rawGyro);
         magData = ApplyWindowFilter(magDataQueue, rawMag);
 
-        // 将九轴数据转换为实际物理数据
+        
         accelData = new Vector3(
             (accelData.x - imuManager.accelOffset.x) / 16393.0f,
             (accelData.y - imuManager.accelOffset.y) / 16393.0f,

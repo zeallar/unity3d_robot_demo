@@ -49,7 +49,7 @@ public class CharacterControllerWithSensor : MonoBehaviour
         lock (updateLock)
         {
             // 检查是否有新的加速度数据
-            if (SensorData.Instance.hasNewAccelData)
+            if (SensorData.Instance.hasNewlData)
             {
                 // 从传感器获取加速度数据
                 Vector3 rawAcceleration = GetSensorData();
@@ -113,7 +113,7 @@ public class CharacterControllerWithSensor : MonoBehaviour
 
                 UpdateAnim();
                 // 重置标志位
-                SensorData.Instance.hasNewAccelData = false;
+                SensorData.Instance.hasNewlData = false;
             }
         }
     }

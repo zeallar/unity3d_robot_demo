@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading;
 using UnityEngine;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+
 
 public class MainManager : MonoBehaviour
 {
@@ -25,7 +27,12 @@ public class MainManager : MonoBehaviour
 
     private ConcurrentQueue<string> dataQueue = new ConcurrentQueue<string>();
     private Mutex mutex = new Mutex();
-    private bool imuInitialized = false;
+
+    private bool calibrationFlag = false;
+    private List<Vector3> accelDataList = new List<Vector3>();
+    private List<Vector3> gyroDataList = new List<Vector3>();
+    private List<Vector3> magDataList = new List<Vector3>();
+
 
     private async void Start()
     {
@@ -48,15 +55,15 @@ public class MainManager : MonoBehaviour
             Debug.LogError("One or more components are not assigned.");
             return;
         }
+        StartCalibration();
+        // 初始化姿态模块
+        attitudeCalculator.InitAttitude();
         await Initialize();
     }
 
     private async Task Initialize()
     {
-        await imuManager.InitializeIMU();
-        imuInitialized = true;
         dataProcessor.InitializeProcessor();
-        attitudeCalculator.Initialize();
     }
 
     void OnDestroy()
@@ -76,16 +83,27 @@ public class MainManager : MonoBehaviour
 
     private void Update()
     {
-        if (!imuInitialized)
+        if (!imuManager.imuInitialized)
         {
             // 如果初始化未完成，则直接返回
+            Debug.Log("IMU is not initialized");
             return;
         }
         mutex.WaitOne();
         try
         {
+            if (!SensorData.Instance.hasNewlData) {
+                return;
+            }
+            // 将九轴数据转换为实际物理数据
             dataProcessor.ProcessData(out Vector3 accelData, out Vector3 gyroData, out Vector3 magData);
-            attitudeCalculator.CalculateAttitude(accelData, gyroData, magData, Time.deltaTime);
+            string accelLog = $"ProcessData after accelData: {accelData}, gyroData: {gyroData}, magData: {magData}";
+            Logger.Info(accelLog);
+            attitudeCalculator.CalculateAttitude(Time.deltaTime,accelData, gyroData, magData);
+            Vector3 eulerAngles = attitudeCalculator.eulerAngles;
+            string gyroLog = "Euler Angles: " + eulerAngles;
+            Debug.Log(gyroLog);
+            Logger.Info(gyroLog);
         }
         finally
         {
@@ -120,10 +138,27 @@ public class MainManager : MonoBehaviour
             {
                 // 解析接收到的数据并更新SensorData
                 SensorDataUtils.ParseSensorData(receiveString);
+
+                if (calibrationFlag)
+                {
+                    // 校准标志位为 true 时，存储数据
+                    Vector3 accelData = imuManager.GetAccelData();
+                    Vector3 gyroData = imuManager.GetGyroData();
+                    Vector3 magData = imuManager.GetMagData();
+                    if (!IsVectorZero(accelData) && !IsVectorZero(gyroData) && !IsVectorZero(magData))
+                    {
+                        StoreCalibrationData(accelData, gyroData, magData);
+                        //Logger.Info("Calibration Store.");
+                    }
+                }
             }
 
             yield return null;
         }
+    }
+    private bool IsVectorZero(Vector3 vector)
+    {
+        return vector.x == 0 && vector.y == 0 && vector.z == 0;
     }
 
     private void SendData(string message)
@@ -140,4 +175,44 @@ public class MainManager : MonoBehaviour
             Debug.LogError("UDP发送数据出错: " + e.Message);
         }
     }
+    public void StartCalibration()
+    {
+        calibrationFlag = true;
+        accelDataList.Clear();
+        gyroDataList.Clear();
+        magDataList.Clear();
+        Logger.Info("Calibration started.");
+    }
+
+    public void StopCalibration()
+    {
+        calibrationFlag = false;
+        // 在此处理存储的校准数据
+        ProcessCalibrationData();
+        Logger.Info("Calibration finished.");
+    }
+
+    private void StoreCalibrationData(Vector3 accelData, Vector3 gyroData, Vector3 magData)
+    {
+        if (accelDataList.Count < 20)
+        {
+            accelDataList.Add(accelData);
+            gyroDataList.Add(gyroData);
+            magDataList.Add(magData);
+        }
+        if (accelDataList.Count >= 20)
+        {
+            Logger.Info("Calibration stop.");
+            StopCalibration();
+        }
+    }
+
+    private void ProcessCalibrationData()
+    {
+        // 处理校准数据的逻辑
+        Debug.Log("Processing calibration data...");
+        // 示例：输出校准数据
+        imuManager.SetAccelGyroOffsets(accelDataList, gyroDataList, magDataList);
+    }
+
 }

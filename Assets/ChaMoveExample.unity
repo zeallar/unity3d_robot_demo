@@ -158,32 +158,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: -927199367670048503, guid: 320b1c2af77554f99a1658df4a6d3d5c, type: 3}
   m_PrefabInstance: {fileID: 1866952719}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &897489238
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 897489236}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ffc3df271f3278742a0668f03a03cdb2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  quaternion: {x: 0, y: 0, z: 0, w: 1}
-  eulerAngles: {x: 0, y: 0, z: 0}
---- !u!114 &897489239
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 897489236}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c53bc3961cd0c7249bb26a869931d29d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!136 &897489240
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -226,7 +200,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 587488f774aeb0948a1092d4cf660469, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hasNewAccelData: 0
+  hasNewlData: 0
+  hasNewlgyroData: 0
+  hasNewlmagData: 0
 --- !u!114 &897489244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -242,6 +218,7 @@ MonoBehaviour:
   accelOffset: {x: 0, y: 0, z: 0}
   gyroOffset: {x: 0, y: 0, z: 0}
   magOffset: {x: 0, y: 0, z: 0}
+  imuInitialized: 0
 --- !u!114 &897489245
 MonoBehaviour:
   m_ObjectHideFlags: 0

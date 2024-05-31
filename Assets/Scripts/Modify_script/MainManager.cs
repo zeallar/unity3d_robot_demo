@@ -33,6 +33,18 @@ public class MainManager : MonoBehaviour
     private List<Vector3> gyroDataList = new List<Vector3>();
     private List<Vector3> magDataList = new List<Vector3>();
 
+    // 定义窗口大小
+    private const int windowSize = 10;
+
+    // 队列用于存储传感器数据
+    private Queue<Vector3> accelerometerData = new Queue<Vector3>();
+    private Queue<Vector3> gyroscopeData = new Queue<Vector3>();
+    private Queue<Vector3> magnetometerData = new Queue<Vector3>();
+
+    // 传感器数据（已滤波和转换）
+    private Vector3 filteredAccData;
+    private Vector3 filteredGyroData;
+    private Vector3 filteredMagData;
 
     private async void Start()
     {
@@ -48,23 +60,20 @@ public class MainManager : MonoBehaviour
         StartCoroutine(RotProcessData());
 
         imuManager = GetComponent<IMUManager>();
-        dataProcessor = GetComponent<IMUDataProcessor>();
-        attitudeCalculator = GetComponent<AttitudeCalculator>();
-        if (imuManager == null || dataProcessor == null || attitudeCalculator == null)
+        if (imuManager == null )
         {
             Debug.LogError("One or more components are not assigned.");
             return;
         }
         StartCalibration();
-        // 初始化姿态模块
-        attitudeCalculator.InitAttitude();
-        await Initialize();
+        // 初始化队列
+        InitializeQueue(accelerometerData, windowSize);
+        InitializeQueue(gyroscopeData, windowSize);
+        InitializeQueue(magnetometerData, windowSize);
+
     }
 
-    private async Task Initialize()
-    {
-        dataProcessor.InitializeProcessor();
-    }
+
 
     void OnDestroy()
     {
@@ -80,7 +89,13 @@ public class MainManager : MonoBehaviour
             udpClient = null;
         }
     }
-
+    void InitializeQueue(Queue<Vector3> queue, int size)
+    {
+        for (int i = 0; i < size; i++)
+        {
+            queue.Enqueue(Vector3.zero);
+        }
+    }
     private void Update()
     {
         if (!imuManager.imuInitialized)
@@ -95,12 +110,19 @@ public class MainManager : MonoBehaviour
             if (!SensorData.Instance.hasNewlData) {
                 return;
             }
-            // 将九轴数据转换为实际物理数据
-            dataProcessor.ProcessData(out Vector3 accelData, out Vector3 gyroData, out Vector3 magData);
-            string accelLog = $"ProcessData after accelData: {accelData}, gyroData: {gyroData}, magData: {magData}";
-            Logger.Info(accelLog);
-            attitudeCalculator.CalculateAttitude(Time.deltaTime,accelData, gyroData, magData);
-            Vector3 eulerAngles = attitudeCalculator.eulerAngles;
+            // 读取传感器数据并加入队列
+            Vector3 acc = imuManager.GetAccelData();
+            Vector3 gyro = imuManager.GetGyroData();
+            Vector3 mag = imuManager.GetMagData();
+
+            // 滤波处理
+            filteredAccData = FilterData(accelerometerData, acc);
+            filteredGyroData = FilterData(gyroscopeData, gyro);
+            filteredMagData = FilterData(magnetometerData, mag);
+            Logger.Info($"filteredAccData:{filteredAccData},filteredGyroData:{filteredGyroData},filteredMagData:{filteredMagData}");
+            // 计算欧拉角
+            Vector3 eulerAngles = CalculateEulerAngles(filteredAccData, filteredGyroData, filteredMagData);
+
             string gyroLog = "Euler Angles: " + eulerAngles;
             Debug.Log(gyroLog);
             Logger.Info(gyroLog);
@@ -110,7 +132,43 @@ public class MainManager : MonoBehaviour
             mutex.ReleaseMutex();
         }
     }
+    Vector3 FilterData(Queue<Vector3> queue, Vector3 newData)
+    {
+        if (queue.Count >= windowSize)
+        {
+            queue.Dequeue();
+        }
+        queue.Enqueue(newData);
 
+        Vector3 sum = Vector3.zero;
+        foreach (var data in queue)
+        {
+            sum += data;
+        }
+        return sum / queue.Count;
+    }
+    Vector3 CalculateEulerAngles(Vector3 acc, Vector3 gyro, Vector3 mag)
+    {
+        // 转换加速度计数据为 m/s²
+        acc *= 9.81f;
+
+        // 归一化加速度计数据
+        Vector3 accNorm = acc.normalized;
+
+        // 归一化磁力计数据
+        Vector3 magNorm = mag.normalized;
+
+        // 计算俯仰角和横滚角
+        float pitch = Mathf.Asin(-accNorm.x) * Mathf.Rad2Deg;
+        float roll = Mathf.Atan2(accNorm.y, accNorm.z) * Mathf.Rad2Deg;
+
+        // 计算偏航角
+        float magX = magNorm.x * Mathf.Cos(pitch) + magNorm.y * Mathf.Sin(roll) * Mathf.Sin(pitch) + magNorm.z * Mathf.Cos(roll) * Mathf.Sin(pitch);
+        float magY = magNorm.y * Mathf.Cos(roll) - magNorm.z * Mathf.Sin(roll);
+        float yaw = Mathf.Atan2(-magY, magX) * Mathf.Rad2Deg;
+
+        return new Vector3(roll, pitch, yaw);
+    }
     private void RotReceiveData()
     {
         try

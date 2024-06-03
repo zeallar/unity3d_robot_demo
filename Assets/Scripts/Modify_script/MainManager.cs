@@ -46,6 +46,7 @@ public class MainManager : MonoBehaviour
     private Vector3 filteredGyroData;
     private Vector3 filteredMagData;
 
+    private UDPCommunicator udpCommunicator;
     private async void Start()
     {
         udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(localIPAddress), localPort));
@@ -71,6 +72,7 @@ public class MainManager : MonoBehaviour
         InitializeQueue(gyroscopeData, windowSize);
         InitializeQueue(magnetometerData, windowSize);
 
+        udpCommunicator = gameObject.AddComponent<UDPCommunicator>();
     }
 
 
@@ -123,15 +125,18 @@ public class MainManager : MonoBehaviour
             // 计算欧拉角
             Vector3 eulerAngles = CalculateEulerAngles(filteredAccData, filteredGyroData, filteredMagData);
 
-            string gyroLog = "Euler Angles: " + eulerAngles;
+            string gyroLog = $"Euler Angles: {eulerAngles.x},{eulerAngles.y},{eulerAngles.z}";
             Debug.Log(gyroLog);
             Logger.Info(gyroLog);
+
+            udpCommunicator.SendData(eulerAngles);
         }
         finally
         {
             mutex.ReleaseMutex();
         }
     }
+
     Vector3 FilterData(Queue<Vector3> queue, Vector3 newData)
     {
         if (queue.Count >= windowSize)

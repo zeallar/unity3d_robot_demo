@@ -47,6 +47,8 @@ public class MainManager : MonoBehaviour
     private Vector3 filteredMagData;
 
     private TCPSender tcpSender;
+
+    private MadgwickAHRS madgwick;
     private async void Start()
     {
         udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(localIPAddress), localPort));
@@ -73,6 +75,7 @@ public class MainManager : MonoBehaviour
         InitializeQueue(magnetometerData, windowSize);
 
         tcpSender = gameObject.AddComponent<TCPSender>();
+        madgwick = new MadgwickAHRS(0.1f);
     }
 
 
@@ -120,18 +123,25 @@ public class MainManager : MonoBehaviour
             Vector3 gyro = imuManager.GetGyroData();
             Vector3 mag = imuManager.GetMagData();
 
-            // 滤波处理
-            filteredAccData = FilterData(accelerometerData, acc);
-            filteredGyroData = FilterData(gyroscopeData, gyro);
-            filteredMagData = FilterData(magnetometerData, mag);
-            Logger.Info($"filteredAccData:{filteredAccData},filteredGyroData:{filteredGyroData},filteredMagData:{filteredMagData}");
-            // 计算欧拉角
-            Vector3 eulerAngles = CalculateEulerAngles(filteredAccData, filteredGyroData, filteredMagData);
+            acc = filteredAccData;
+            gyro = filteredGyroData;
+            mag = filteredMagData;
 
-            string gyroLog = $"Euler Angles: {eulerAngles.x},{eulerAngles.y},{eulerAngles.z}";
-            Debug.Log(gyroLog);
-            Logger.Info(gyroLog);
-            tcpSender.SendEulerAngles(eulerAngles);
+            // 滤波处理
+            //filteredAccData = FilterData(accelerometerData, acc);
+            //filteredGyroData = FilterData(gyroscopeData, gyro);
+            //filteredMagData = FilterData(magnetometerData, mag);
+            //减去偏移量
+            filteredAccData -= imuManager.accelOffset;
+            filteredGyroData -= imuManager.gyroOffset;
+            filteredMagData -= imuManager.magOffset;
+            madgwick.Update(filteredGyroData.x, filteredGyroData.y, filteredGyroData.z, filteredAccData.x, filteredAccData.y, filteredAccData.z, filteredMagData.x, filteredMagData.y, filteredMagData.z, Time.deltaTime);
+
+            Quaternion q = madgwick.GetQuaternion();
+            Vector3 euler = q.eulerAngles;
+
+            tcpSender.SendEulerAngles(euler);
+            Logger.Info("Euler Angles: " + euler);
         }
         finally
         {

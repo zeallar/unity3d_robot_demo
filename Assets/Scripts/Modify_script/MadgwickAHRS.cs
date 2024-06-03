@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class MadgwickAHRS
+public class MadgwickAHRS 
 {
     private float beta; // Algorithm gain
     private Quaternion q; // Quaternion of sensor frame relative to auxiliary frame

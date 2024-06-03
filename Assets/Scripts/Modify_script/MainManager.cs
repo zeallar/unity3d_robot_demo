@@ -46,7 +46,7 @@ public class MainManager : MonoBehaviour
     private Vector3 filteredGyroData;
     private Vector3 filteredMagData;
 
-    private UDPCommunicator udpCommunicator;
+    private TCPSender tcpSender;
     private async void Start()
     {
         udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(localIPAddress), localPort));
@@ -72,7 +72,7 @@ public class MainManager : MonoBehaviour
         InitializeQueue(gyroscopeData, windowSize);
         InitializeQueue(magnetometerData, windowSize);
 
-        udpCommunicator = gameObject.AddComponent<UDPCommunicator>();
+        tcpSender = gameObject.AddComponent<TCPSender>();
     }
 
 
@@ -85,6 +85,9 @@ public class MainManager : MonoBehaviour
             receiveThread.Abort();
             receiveThread = null;
         }
+
+        tcpSender.OnApplicationQuit();
+
         if (udpClient != null)
         {
             udpClient.Close();
@@ -128,8 +131,7 @@ public class MainManager : MonoBehaviour
             string gyroLog = $"Euler Angles: {eulerAngles.x},{eulerAngles.y},{eulerAngles.z}";
             Debug.Log(gyroLog);
             Logger.Info(gyroLog);
-
-            udpCommunicator.SendData(eulerAngles);
+            tcpSender.SendEulerAngles(eulerAngles);
         }
         finally
         {

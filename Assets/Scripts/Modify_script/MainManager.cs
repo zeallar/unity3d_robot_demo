@@ -33,7 +33,7 @@ public class MainManager : MonoBehaviour
     private List<Vector3> gyroDataList = new List<Vector3>();
     private List<Vector3> magDataList = new List<Vector3>();
 
-
+    private TCPSender tcpSender;
     private async void Start()
     {
         udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(localIPAddress), localPort));
@@ -59,6 +59,8 @@ public class MainManager : MonoBehaviour
         // 初始化姿态模块
         attitudeCalculator.InitAttitude();
         await Initialize();
+
+        tcpSender = gameObject.AddComponent<TCPSender>();
     }
 
     private async Task Initialize()
@@ -101,9 +103,11 @@ public class MainManager : MonoBehaviour
             Logger.Info(accelLog);
             attitudeCalculator.CalculateAttitude(Time.deltaTime,accelData, gyroData, magData);
             Vector3 eulerAngles = attitudeCalculator.eulerAngles;
+            Vector3 euler = attitudeCalculator.quaternion.eulerAngles;
             string gyroLog = "Euler Angles: " + eulerAngles;
             Debug.Log(gyroLog);
             Logger.Info(gyroLog);
+            tcpSender.SendEulerAngles(euler);
         }
         finally
         {

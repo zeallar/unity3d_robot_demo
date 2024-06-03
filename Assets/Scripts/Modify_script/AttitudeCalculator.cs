@@ -19,10 +19,10 @@ public class AttitudeCalculator : MonoBehaviour
     // 中间变量
     private Vector3 error = Vector3.zero;
     private Vector3 errorIntegral = Vector3.zero;
-    private Quaternion quaternion = Quaternion.identity;
+    public Quaternion quaternion = Quaternion.identity;
 
     // 数据
-    private Matrix4x4 rotateMatrix = Matrix4x4.zero;
+    private Matrix4x4 rotateMatrix = Matrix4x4.identity;
     private Vector3 magWorld = Vector3.zero;
     private Vector3 accWorld = Vector3.zero;
     private Vector3 magCorrect = Vector3.zero;
@@ -92,9 +92,9 @@ public class AttitudeCalculator : MonoBehaviour
             error.y = (accNorm.z * rotateMatrix[0, 2] - accNorm.x * rotateMatrix[2, 2]);
             error.z = (accNorm.x * rotateMatrix[1, 2] - accNorm.y * rotateMatrix[0, 2]);
 
-            error = Vector3.Lerp(error, error, 1.0f * 3.14f * cycle);
-
+            // 误差积分
             errorIntegral += error * errorKi * cycle;
+            // 积分限幅
             errorIntegral = Vector3.ClampMagnitude(errorIntegral, 0.035f);
         }
         else
@@ -108,7 +108,14 @@ public class AttitudeCalculator : MonoBehaviour
         gyroCorrect.z = ((gyroData.z) - rotateMatrix[2, 2] * correctKp) * 0.01745329f + (errorKp * error.z + errorIntegral.z);
 
         // 一阶龙格库塔更新四元数值
-        quaternion = Quaternion.Euler(gyroCorrect * cycle / 2.0f) * quaternion;
+        Quaternion gyroQuat = new Quaternion(gyroCorrect.x, gyroCorrect.y, gyroCorrect.z, 0);
+        gyroQuat *= quaternion;
+        quaternion.x += gyroQuat.x * (0.5f * cycle);
+        quaternion.y += gyroQuat.y * (0.5f * cycle);
+        quaternion.z += gyroQuat.z * (0.5f * cycle);
+        quaternion.w += gyroQuat.w * (0.5f * cycle);
+
+        // 四元数归一化
         quaternion.Normalize();
 
         // 计算旋转矩阵
@@ -119,9 +126,9 @@ public class AttitudeCalculator : MonoBehaviour
         accWorld = rotateMatrix.MultiplyPoint3x4(accData);
 
         // 求解欧拉角
-        eulerAngles.x = Mathf.Atan2(rotateMatrix[2, 2], rotateMatrix[1, 2]) * Mathf.Rad2Deg;
-        eulerAngles.y = -Mathf.Asin(rotateMatrix[0, 2]) * Mathf.Rad2Deg;
-        eulerAngles.z = Mathf.Atan2(rotateMatrix[0, 0], rotateMatrix[0, 1]) * Mathf.Rad2Deg;
+        eulerAngles.x = Mathf.Atan2(rotateMatrix[2, 1], rotateMatrix[2, 2]) * Mathf.Rad2Deg;
+        eulerAngles.y = -Mathf.Asin(rotateMatrix[2, 0]) * Mathf.Rad2Deg;
+        eulerAngles.z = Mathf.Atan2(rotateMatrix[1, 0], rotateMatrix[0, 0]) * Mathf.Rad2Deg;
 
         // 计算矫正后的加速度和磁场
         accCorrect.x = accWorld.x * Mathf.Cos(eulerAngles.z * Mathf.Deg2Rad) + accWorld.y * Mathf.Sin(eulerAngles.z * Mathf.Deg2Rad);

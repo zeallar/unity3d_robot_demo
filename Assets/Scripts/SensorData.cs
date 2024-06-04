@@ -53,7 +53,7 @@ public class SensorData : MonoBehaviour
 
                 string accelLog = $"加速度X: {this.accelX}, Y: {this.accelY}, Z: {this.accelZ}";
                 Debug.Log(accelLog);
-                Logger.Info(accelLog);
+                //Logger.Info(accelLog);
             }
         }
     }
@@ -96,7 +96,7 @@ public class SensorData : MonoBehaviour
                 hasNewlmagData = true; // 设置标志位
                 string magLog = $"磁力计X: {this.magX}, Y: {this.magY}, Z: {this.magZ}";
                 //Debug.Log(magLog);
-                Logger.Info(magLog);
+                //Logger.Info(magLog);
             }
         }
     }

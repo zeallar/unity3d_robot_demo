@@ -6,14 +6,11 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using UnityEngine;
-using System.Threading.Tasks;
 using System.Collections.Generic;
-
 
 public class MainManager : MonoBehaviour
 {
     private IMUManager imuManager;
-    private IMUDataProcessor dataProcessor;
     private AttitudeCalculator attitudeCalculator;
 
     private UdpClient udpClient;
@@ -47,8 +44,8 @@ public class MainManager : MonoBehaviour
     private Vector3 filteredMagData;
 
     private TCPSender tcpSender;
-
     private MadgwickAHRS madgwick;
+
     private async void Start()
     {
         udpClient = new UdpClient(new IPEndPoint(IPAddress.Parse(localIPAddress), localPort));
@@ -63,9 +60,9 @@ public class MainManager : MonoBehaviour
         StartCoroutine(RotProcessData());
 
         imuManager = GetComponent<IMUManager>();
-        if (imuManager == null )
+        if (imuManager == null)
         {
-            Debug.LogError("One or more components are not assigned.");
+            Debug.LogError("IMUManager component is not assigned.");
             return;
         }
         StartCalibration();
@@ -75,10 +72,8 @@ public class MainManager : MonoBehaviour
         InitializeQueue(magnetometerData, windowSize);
 
         tcpSender = gameObject.AddComponent<TCPSender>();
-        madgwick = new MadgwickAHRS(0.1f);
+        madgwick = new MadgwickAHRS(); // 这里假设采样频率为256Hz，beta参数为0.05;
     }
-
-
 
     void OnDestroy()
     {
@@ -97,6 +92,7 @@ public class MainManager : MonoBehaviour
             udpClient = null;
         }
     }
+
     void InitializeQueue(Queue<Vector3> queue, int size)
     {
         for (int i = 0; i < size; i++)
@@ -104,6 +100,7 @@ public class MainManager : MonoBehaviour
             queue.Enqueue(Vector3.zero);
         }
     }
+
     private void Update()
     {
         if (!imuManager.imuInitialized)
@@ -112,10 +109,12 @@ public class MainManager : MonoBehaviour
             Debug.Log("IMU is not initialized");
             return;
         }
+
         mutex.WaitOne();
         try
         {
-            if (!SensorData.Instance.hasNewlData) {
+            if (!SensorData.Instance.hasNewlData)
+            {
                 return;
             }
             // 读取传感器数据并加入队列
@@ -123,23 +122,20 @@ public class MainManager : MonoBehaviour
             Vector3 gyro = imuManager.GetGyroData();
             Vector3 mag = imuManager.GetMagData();
 
-            acc = filteredAccData;
-            gyro = filteredGyroData;
-            mag = filteredMagData;
-
+            //零偏校准
+            acc -= imuManager.accelOffset;
+            acc -= imuManager.gyroOffset;
             // 滤波处理
-            //filteredAccData = FilterData(accelerometerData, acc);
-            //filteredGyroData = FilterData(gyroscopeData, gyro);
-            //filteredMagData = FilterData(magnetometerData, mag);
-            //减去偏移量
-            filteredAccData -= imuManager.accelOffset;
-            filteredGyroData -= imuManager.gyroOffset;
-            filteredMagData -= imuManager.magOffset;
-            madgwick.Update(filteredGyroData.x, filteredGyroData.y, filteredGyroData.z, filteredAccData.x, filteredAccData.y, filteredAccData.z, filteredMagData.x, filteredMagData.y, filteredMagData.z, Time.deltaTime);
+            filteredAccData = FilterData(accelerometerData, acc);
+            filteredGyroData = FilterData(gyroscopeData, gyro);
+            filteredMagData = FilterData(magnetometerData, mag);
 
-            Quaternion q = madgwick.GetQuaternion();
-            Vector3 euler = q.eulerAngles;
 
+            // 使用Madgwick滤波器更新四元数并计算欧拉角
+            madgwick.MadgwickAHRSupdateIMU(filteredGyroData.x, filteredGyroData.y, filteredGyroData.z, filteredAccData.x, filteredAccData.y, filteredAccData.z);
+            Vector3 euler =madgwick.GetEulerAngles();
+
+            // 发送欧拉角
             tcpSender.SendEulerAngles(euler);
             Logger.Info("Euler Angles: " + euler);
         }
@@ -164,28 +160,7 @@ public class MainManager : MonoBehaviour
         }
         return sum / queue.Count;
     }
-    Vector3 CalculateEulerAngles(Vector3 acc, Vector3 gyro, Vector3 mag)
-    {
-        // 转换加速度计数据为 m/s²
-        acc *= 9.81f;
 
-        // 归一化加速度计数据
-        Vector3 accNorm = acc.normalized;
-
-        // 归一化磁力计数据
-        Vector3 magNorm = mag.normalized;
-
-        // 计算俯仰角和横滚角
-        float pitch = Mathf.Asin(-accNorm.x) * Mathf.Rad2Deg;
-        float roll = Mathf.Atan2(accNorm.y, accNorm.z) * Mathf.Rad2Deg;
-
-        // 计算偏航角
-        float magX = magNorm.x * Mathf.Cos(pitch) + magNorm.y * Mathf.Sin(roll) * Mathf.Sin(pitch) + magNorm.z * Mathf.Cos(roll) * Mathf.Sin(pitch);
-        float magY = magNorm.y * Mathf.Cos(roll) - magNorm.z * Mathf.Sin(roll);
-        float yaw = Mathf.Atan2(-magY, magX) * Mathf.Rad2Deg;
-
-        return new Vector3(roll, pitch, yaw);
-    }
     private void RotReceiveData()
     {
         try
@@ -223,7 +198,6 @@ public class MainManager : MonoBehaviour
                     if (!IsVectorZero(accelData) && !IsVectorZero(gyroData) && !IsVectorZero(magData))
                     {
                         StoreCalibrationData(accelData, gyroData, magData);
-                        //Logger.Info("Calibration Store.");
                     }
                 }
             }
@@ -231,6 +205,7 @@ public class MainManager : MonoBehaviour
             yield return null;
         }
     }
+
     private bool IsVectorZero(Vector3 vector)
     {
         return vector.x == 0 && vector.y == 0 && vector.z == 0;
@@ -250,6 +225,7 @@ public class MainManager : MonoBehaviour
             Debug.LogError("UDP发送数据出错: " + e.Message);
         }
     }
+
     public void StartCalibration()
     {
         calibrationFlag = true;
@@ -289,5 +265,4 @@ public class MainManager : MonoBehaviour
         // 示例：输出校准数据
         imuManager.SetAccelGyroOffsets(accelDataList, gyroDataList, magDataList);
     }
-
 }

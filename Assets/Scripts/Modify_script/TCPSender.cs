@@ -56,6 +56,21 @@ public class TCPSender : MonoBehaviour
             }
         }
     }
+    public void SendString(String str)
+    {
+        if (client != null && client.Connected)
+        {
+            byte[] data = Encoding.ASCII.GetBytes(str);
+            try
+            {
+                stream.Write(data, 0, data.Length);
+            }
+            catch (Exception e)
+            {
+                Debug.Log("Failed to send data: " + e.Message);
+            }
+        }
+    }
 
     public void OnApplicationQuit()
     {

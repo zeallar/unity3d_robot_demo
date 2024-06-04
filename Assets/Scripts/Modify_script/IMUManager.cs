@@ -7,12 +7,16 @@ public class IMUManager : MonoBehaviour
     public Vector3 gyroOffset;
     public Vector3 magOffset;
     public bool imuInitialized = false;
-
+    public float maxX = float.MinValue, maxY = float.MinValue, maxZ = float.MinValue;
+    public float minX = float.MaxValue, minY = float.MaxValue, minZ = float.MaxValue;
+    private const int windowSize = 10; // 滑动窗口大小，可以根据需要调整
+    private Queue<Vector3> gyroDataQueue = new Queue<Vector3>();
     public void SetAccelGyroOffsets(List<Vector3> AccelDataList, List<Vector3> GyrolDataList, List<Vector3> MagDataList)
     {
         accelOffset = CalculateOffset(AccelDataList);
         //accelOffset.z -= 16384;
         gyroOffset = CalculateOffset(GyrolDataList);
+        CalculateGyroOffset(GyrolDataList);
         //SetMagOffset(MagDataList);
         magOffset = CalculateOffset(MagDataList);
         Logger.Info($"accelOffset:{accelOffset},gyroOffset:{gyroOffset}");
@@ -70,7 +74,48 @@ public class IMUManager : MonoBehaviour
 
         return offset / DataList.Count;
     }
+    // 计算陀螺仪数据偏移量
+    public void CalculateGyroOffset(List<Vector3> dataList)
+    {
+        foreach (Vector3 gyroData in dataList)
+        {
+            Vector3 newGyroData= gyroData -gyroOffset;
+            // 滤波处理
+            Vector3 filteredGyroData = FilterData(gyroDataQueue, newGyroData);
 
+            // 更新最大值和最小值
+            UpdateMaxMin(filteredGyroData);
+
+        }
+    }
+    // 滤波处理
+    private Vector3 FilterData(Queue<Vector3> queue, Vector3 newData)
+    {
+        if (queue.Count >= windowSize)
+        {
+            queue.Dequeue();
+        }
+        queue.Enqueue(newData);
+
+        Vector3 sum = Vector3.zero;
+        foreach (var data in queue)
+        {
+            sum += data;
+        }
+        return sum / queue.Count;
+    }
+    // 更新最大值和最小值
+    public void UpdateMaxMin(Vector3 data)
+    {
+        if (data.x > maxX) maxX = data.x;
+        if (data.x < minX) minX = data.x;
+
+        if (data.y > maxY) maxY = data.y;
+        if (data.y < minY) minY = data.y;
+
+        if (data.z > maxZ) maxZ = data.z;
+        if (data.z < minZ) minZ = data.z;
+    }
     public Vector3 GetAccelData()
     {
         SensorData.Instance.GetAccelData(out float accelX, out float accelY, out float accelZ);

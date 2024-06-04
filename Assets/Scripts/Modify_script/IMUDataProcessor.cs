@@ -26,21 +26,21 @@ public class IMUDataProcessor : MonoBehaviour
 
         
         accelData = new Vector3(
-            (accelData.x - imuManager.accelOffset.x) / 16393.0f,
-            (accelData.y - imuManager.accelOffset.y) / 16393.0f,
-            (accelData.z - imuManager.accelOffset.z) / 16393.0f
+            (accelData.x - imuManager.accelOffset.x) / 9.8f,
+            (accelData.y - imuManager.accelOffset.y) / 9.8f,
+            (accelData.z - imuManager.accelOffset.z) / 9.8f
         );
 
         gyroData = new Vector3(
-            (gyroData.x - imuManager.gyroOffset.x) / 57.1f,
-            (gyroData.y - imuManager.gyroOffset.y) / 57.1f,
-            (gyroData.z - imuManager.gyroOffset.z) / 57.1f
+            (gyroData.x - imuManager.gyroOffset.x),
+            (gyroData.y - imuManager.gyroOffset.y),
+            (gyroData.z - imuManager.gyroOffset.z) 
         );
 
         magData = new Vector3(
-            (rawMag.x + imuManager.magOffset.x) * 1.5f,
-            (rawMag.y + imuManager.magOffset.y) * 1.5f,
-            (rawMag.z + imuManager.magOffset.z) * 1.5f
+            (rawMag.x + imuManager.magOffset.x),
+            (rawMag.y + imuManager.magOffset.y) ,
+            (rawMag.z + imuManager.magOffset.z) 
         );
     }
 

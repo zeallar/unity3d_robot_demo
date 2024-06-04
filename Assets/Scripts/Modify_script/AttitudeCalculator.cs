@@ -4,7 +4,7 @@ using UnityEngine;
 public class AttitudeCalculator : MonoBehaviour
 {
     private bool run = true;                 // 开启计算标志
-    private bool useMag = true;              // 使用地磁标志
+    private bool useMag = false;              // 使用地磁标志
 
     // 接口数据
     private Vector3 accData = Vector3.zero;
@@ -69,6 +69,7 @@ public class AttitudeCalculator : MonoBehaviour
         magData = new Vector3(magInput.y, magInput.x, -magInput.z);
 
         // 磁力计处理
+        float magYawBias = 0;
         if (useMag)
         {
             float length = Mathf.Sqrt(magCorrect.x * magCorrect.x + magCorrect.y * magCorrect.y);
@@ -77,7 +78,7 @@ public class AttitudeCalculator : MonoBehaviour
                 float magYaw = Mathf.Atan2(magCorrect.y / length, magCorrect.x / length);
                 if (rotateMatrix[2, 2] > 0.0f)
                 {
-                    float magYawBias = correctKp * TranslateAngle(eulerAngles.z - magYaw);
+                    magYawBias = correctKp * TranslateAngle(eulerAngles.z - magYaw);
                     magYawBias = Mathf.Clamp(magYawBias, -360, 360);
                 }
             }
@@ -103,9 +104,9 @@ public class AttitudeCalculator : MonoBehaviour
         }
 
         // 开始修正陀螺仪值
-        gyroCorrect.x = ((gyroData.x) - rotateMatrix[0, 2] * correctKp) * 0.01745329f + (errorKp * error.x + errorIntegral.x);
-        gyroCorrect.y = ((gyroData.y) - rotateMatrix[1, 2] * correctKp) * 0.01745329f + (errorKp * error.y + errorIntegral.y);
-        gyroCorrect.z = ((gyroData.z) - rotateMatrix[2, 2] * correctKp) * 0.01745329f + (errorKp * error.z + errorIntegral.z);
+        gyroCorrect.x = ((gyroData.x) - rotateMatrix[0, 2] * magYawBias) * 0.01745329f + (errorKp * error.x + errorIntegral.x);
+        gyroCorrect.y = ((gyroData.y) - rotateMatrix[1, 2] * magYawBias) * 0.01745329f + (errorKp * error.y + errorIntegral.y);
+        gyroCorrect.z = ((gyroData.z) - rotateMatrix[2, 2] * magYawBias) * 0.01745329f + (errorKp * error.z + errorIntegral.z);
 
         // 一阶龙格库塔更新四元数值
         Quaternion gyroQuat = new Quaternion(gyroCorrect.x, gyroCorrect.y, gyroCorrect.z, 0);
@@ -126,9 +127,7 @@ public class AttitudeCalculator : MonoBehaviour
         accWorld = rotateMatrix.MultiplyPoint3x4(accData);
 
         // 求解欧拉角
-        eulerAngles.x = Mathf.Atan2(rotateMatrix[2, 1], rotateMatrix[2, 2]) * Mathf.Rad2Deg;
-        eulerAngles.y = -Mathf.Asin(rotateMatrix[2, 0]) * Mathf.Rad2Deg;
-        eulerAngles.z = Mathf.Atan2(rotateMatrix[1, 0], rotateMatrix[0, 0]) * Mathf.Rad2Deg;
+        eulerAngles = quaternion.eulerAngles;
 
         // 计算矫正后的加速度和磁场
         accCorrect.x = accWorld.x * Mathf.Cos(eulerAngles.z * Mathf.Deg2Rad) + accWorld.y * Mathf.Sin(eulerAngles.z * Mathf.Deg2Rad);

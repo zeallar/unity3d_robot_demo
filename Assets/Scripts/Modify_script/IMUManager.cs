@@ -11,7 +11,8 @@ public class IMUManager : MonoBehaviour
     public void SetAccelGyroOffsets(List<Vector3> AccelDataList, List<Vector3> GyrolDataList, List<Vector3> MagDataList)
     {
         accelOffset = CalculateOffset(AccelDataList);
-        accelOffset.z -= 16384;
+        //accelOffset.z -= 16384;
+        accelOffset.z -= 10;
         gyroOffset = CalculateOffset(GyrolDataList);
         SetMagOffset(MagDataList);
         Logger.Info($"accelOffset:{accelOffset},gyroOffset:{gyroOffset}");

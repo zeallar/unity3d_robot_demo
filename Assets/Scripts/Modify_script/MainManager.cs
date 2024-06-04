@@ -32,6 +32,7 @@ public class MainManager : MonoBehaviour
     private List<Vector3> accelDataList = new List<Vector3>();
     private List<Vector3> gyroDataList = new List<Vector3>();
     private List<Vector3> magDataList = new List<Vector3>();
+    private int listCount = 100;
 
     private TCPSender tcpSender;
     private async void Start()
@@ -107,7 +108,7 @@ public class MainManager : MonoBehaviour
             string gyroLog = "Euler Angles: " + eulerAngles;
             Debug.Log(gyroLog);
             Logger.Info(gyroLog);
-            tcpSender.SendEulerAngles(euler);
+            tcpSender.SendEulerAngles(eulerAngles);
         }
         finally
         {
@@ -198,13 +199,13 @@ public class MainManager : MonoBehaviour
 
     private void StoreCalibrationData(Vector3 accelData, Vector3 gyroData, Vector3 magData)
     {
-        if (accelDataList.Count < 20)
+        if (accelDataList.Count < listCount)
         {
             accelDataList.Add(accelData);
             gyroDataList.Add(gyroData);
             magDataList.Add(magData);
         }
-        if (accelDataList.Count >= 20)
+        if (accelDataList.Count >= listCount)
         {
             Logger.Info("Calibration stop.");
             StopCalibration();

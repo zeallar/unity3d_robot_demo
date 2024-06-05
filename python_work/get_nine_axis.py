@@ -2,6 +2,8 @@ import requests
 import time
 import logging
 import math
+import socket
+import threading
 
 # 替换为你的Phyphox实验的IP地址和端口号
 phyphox_url = "http://192.168.100.107/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
@@ -133,24 +135,52 @@ def madgwick_update(ax, ay, az, gx, gy, gz, mx, my, mz, beta=0.1, dt=0.01):
 
     return q1, q2, q3, q4
 
+def quaternion_to_euler(q1, q2, q3, q4):
+    # 四元数转欧拉角
+    roll = math.atan2(2.0 * (q1 * q2 + q3 * q4), 1.0 - 2.0 * (q2 * q2 + q3 * q3))
+    pitch = math.asin(2.0 * (q1 * q3 - q4 * q2))
+    yaw = math.atan2(2.0 * (q1 * q4 + q2 * q3), 1.0 - 2.0 * (q3 * q3 + q4 * q4))
+    return math.degrees(roll), math.degrees(pitch), math.degrees(yaw)
+
+def tcp_server(host='127.0.0.1', port=9995):
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, port))
+    server_socket.listen(1)
+    print(f"TCP server listening on {host}:{port}")
+
+    while True:
+        client_socket, addr = server_socket.accept()
+        print(f"Connection from {addr}")
+        while True:
+            data = get_phyphox_data()
+            if data:
+                # 转换单位
+                ax, ay, az = data['acceleration']['x'], data['acceleration']['y'], data['acceleration']['z']
+                gx, gy, gz = math.radians(data['gyroscope']['x']), math.radians(data['gyroscope']['y']), math.radians(data['gyroscope']['z'])
+                mx, my, mz = data['magnetometer']['x'], data['magnetometer']['y'], data['magnetometer']['z']
+
+                # 更新四元数
+                q1, q2, q3, q4 = madgwick_update(ax, ay, az, gx, gy, gz, mx, my, mz)
+
+                # 转换为欧拉角
+                roll, pitch, yaw = quaternion_to_euler(q1, q2, q3, q4)
+
+                # 发送数据给客户端
+                euler_angles = f"euler: {roll:.2f},{pitch:.2f},{yaw:.2f}\n"
+                client_socket.send(euler_angles.encode('utf-8'))
+
+                # 记录日志
+                logging.info("加速度计X: %.2f, Y: %.2f, Z: %.2f", ax, ay, az)
+                logging.info("陀螺仪X: %.2f, Y: %.2f, Z: %.2f", gx, gy, gz)
+                logging.info("磁力计X: %.2f, Y: %.2f, Z: %.2f", mx, my, mz)
+                logging.info("四元数: q1: %.2f, q2: %.2f, q3: %.2f, q4: %.2f", q1, q2, q3, q4)
+                logging.info("欧拉角: Roll: %.2f, Pitch: %.2f, Yaw: %.2f", roll, pitch, yaw)
+            time.sleep(0.01)  # 每0.01秒获取一次数据
+
 def main():
     print("Starting data logging...")
-    while True:
-        data = get_phyphox_data()
-        if data:
-            # 转换单位
-            ax, ay, az = data['acceleration']['x'], data['acceleration']['y'], data['acceleration']['z']
-            gx, gy, gz = math.radians(data['gyroscope']['x']), math.radians(data['gyroscope']['y']), math.radians(data['gyroscope']['z'])
-            mx, my, mz = data['magnetometer']['x'], data['magnetometer']['y'], data['magnetometer']['z']
-
-            # 更新四元数
-            q1, q2, q3, q4 = madgwick_update(ax, ay, az, gx, gy, gz, mx, my, mz)
-
-            logging.info("加速度计X: %.2f, Y: %.2f, Z: %.2f", ax, ay, az)
-            logging.info("陀螺仪X: %.2f, Y: %.2f, Z: %.2f", gx, gy, gz)
-            logging.info("磁力计X: %.2f, Y: %.2f, Z: %.2f", mx, my, mz)
-            logging.info("四元数: q1: %.2f, q2: %.2f, q3: %.2f, q4: %.2f", q1, q2, q3, q4)
-        time.sleep(0.01)  # 每0.01秒获取一次数据
+    tcp_thread = threading.Thread(target=tcp_server)
+    tcp_thread.start()
 
 if __name__ == "__main__":
     main()

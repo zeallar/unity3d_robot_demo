@@ -32,7 +32,7 @@ logging.basicConfig(
 class PoseModule:
     def __init__(self):
         self.run = True
-        self.use_mag = False
+        self.use_mag = True
         self.a_x = self.a_y = self.a_z = 0.0
         self.g_x = self.g_y = self.g_z = 0.0
         self.m_x = self.m_y = self.m_z = 0.0

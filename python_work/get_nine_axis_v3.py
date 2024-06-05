@@ -2,7 +2,7 @@
 #Author:zhouBL
 #Version:
 #Description:https://github.com/diceTZ/Pose  姿态解算版本
-#Others:LSM6DS3TR+QMC6309
+#Others:增加灵敏度参数
 #created date:6/5/2024 6:05 下午
 #modified date:
 #*************************************************/
@@ -32,7 +32,7 @@ logging.basicConfig(
 class PoseModule:
     def __init__(self):
         self.run = True
-        self.use_mag = False
+        self.use_mag = True
         self.a_x = self.a_y = self.a_z = 0.0
         self.g_x = self.g_y = self.g_z = 0.0
         self.m_x = self.m_y = self.m_z = 0.0
@@ -84,7 +84,7 @@ def get_phyphox_data():
         print(f"Failed to get data: {response.status_code}")
         return None
 
-def madgwick_update(pose, cycle):
+def madgwick_update(pose, cycle, sensitivity=1.0):
     if not pose.run:
         return pose.quaternion
 
@@ -120,7 +120,7 @@ def madgwick_update(pose, cycle):
             0.5 * (pose.quaternion[0] * pose.gyro_correct[2] + pose.quaternion[1] * pose.gyro_correct[1] - pose.quaternion[2] * pose.gyro_correct[0])
         ]
         
-        pose.quaternion = [pose.quaternion[i] + q_dot[i] * cycle for i in range(4)]
+        pose.quaternion = [pose.quaternion[i] + q_dot[i] * cycle * sensitivity for i in range(4)]
         norm = math.sqrt(sum(val ** 2 for val in pose.quaternion))
         pose.quaternion = [val / norm for val in pose.quaternion]
 
@@ -165,14 +165,8 @@ def simple_3d_trans(ref, in_vector, out_vector):
     out_vector[1] = (pn * h_tmp_y * in_vector[1] - ref[1] * in_vector[2])
     out_vector[2] = ref[0] * in_vector[0] + ref[1] * in_vector[1] + ref[2] * in_vector[2]
 
-def quaternion_to_euler(q1, q2, q3, q4):
-    # Quaternion to Euler angles
-    roll = math.atan2(2.0 * (q1 * q2 + q3 * q4), 1.0 - 2.0 * (q2 * q2 + q3 * q3))
-    pitch = math.asin(2.0 * (q1 * q3 - q4 * q2))
-    yaw = math.atan2(2.0 * (q1 * q4 + q2 * q3), 1.0 - 2.0 * (q3 * q3 + q4 * q4))
-    return math.degrees(roll), math.degrees(pitch), math.degrees(yaw)
 
-def tcp_server(host='127.0.0.1', port=9995):
+def tcp_server(host='127.0.0.1', port=9995, sensitivity=1.0):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
     server_socket.listen(1)
@@ -190,10 +184,13 @@ def tcp_server(host='127.0.0.1', port=9995):
                 pose.m_x, pose.m_y, pose.m_z = data['magnetometer']['x'], data['magnetometer']['y'], data['magnetometer']['z']
 
                 # Update quaternion
-                q1, q2, q3, q4 = madgwick_update(pose, 0.01)
+                q1, q2, q3, q4 = madgwick_update(pose, 0.01, sensitivity)
+
+                # Convert to Euler angles
+                roll, pitch, yaw = pose.rol, pose.pit, pose.yaw
 
                 # Send data to client
-                euler_angles = f"euler: {pose.rol:.2f},{pose.pit:.2f},{pose.yaw:.2f}\n"
+                euler_angles = f"euler: {roll:.2f},{pitch:.2f},{yaw:.2f}\n"
                 client_socket.send(euler_angles.encode('utf-8'))
 
                 # Log data
@@ -201,12 +198,13 @@ def tcp_server(host='127.0.0.1', port=9995):
                 logging.info("Gyroscope X: %.2f °/s, Y: %.2f °/s, Z: %.2f °/s", pose.g_x, pose.g_y, pose.g_z)
                 logging.info("Magnetometer X: %.2f, Y: %.2f, Z: %.2f", pose.m_x, pose.m_y, pose.m_z)
                 logging.info("Quaternion: q1: %.2f, q2: %.2f, q3: %.2f, q4: %.2f", q1, q2, q3, q4)
-                logging.info("Euler angles: Roll: %.2f, Pitch: %.2f, Yaw: %.2f", pose.rol, pose.pit, pose.yaw)
+                logging.info("Euler angles: Roll: %.2f, Pitch: %.2f, Yaw: %.2f", roll, pitch, yaw)
             time.sleep(0.01)  # Get data every 0.01 seconds
 
 def main():
     print("Starting data logging...")
-    tcp_thread = threading.Thread(target=tcp_server)
+    sensitivity = 3.8  # Adjust this value to increase or decrease sensitivity
+    tcp_thread = threading.Thread(target=tcp_server, args=('127.0.0.1', 9995, sensitivity))
     tcp_thread.start()
 
 if __name__ == "__main__":

@@ -1,3 +1,11 @@
+#/*************************************************
+#Author:zhouBL
+#Version:
+#Description:madgwick算法实现版本，前面几秒需要进行梯度下降校准，数值会很不稳。
+#Others:
+#created date:6/5/2024 6:05 下午
+#modified date:
+#*************************************************/
 import requests
 import time
 import logging
@@ -32,16 +40,16 @@ def get_phyphox_data():
 
         if 'accX' in data['buffer']:
             result['acceleration'] = {
-                "x": data['buffer']['accX']['buffer'][0] * 100,  # m/s² to cm/s²
-                "y": data['buffer']['accY']['buffer'][0] * 100,  # m/s² to cm/s²
-                "z": data['buffer']['accZ']['buffer'][0] * 100   # m/s² to cm/s²
+                "x": data['buffer']['accX']['buffer'][0],
+                "y": data['buffer']['accY']['buffer'][0],
+                "z": data['buffer']['accZ']['buffer'][0]
             }
 
         if 'gyroX' in data['buffer']:
             result['gyroscope'] = {
-                "x": data['buffer']['gyroX']['buffer'][0] * 57.2958,  # rad/s to degrees/s
-                "y": data['buffer']['gyroY']['buffer'][0] * 57.2958,  # rad/s to degrees/s
-                "z": data['buffer']['gyroZ']['buffer'][0] * 57.2958   # rad/s to degrees/s
+                "x": data['buffer']['gyroX']['buffer'][0],
+                "y": data['buffer']['gyroY']['buffer'][0],
+                "z": data['buffer']['gyroZ']['buffer'][0]
             }
 
         if 'magX' in data['buffer']:
@@ -156,7 +164,7 @@ def tcp_server(host='127.0.0.1', port=9995):
             if data:
                 # 转换单位
                 ax, ay, az = data['acceleration']['x'], data['acceleration']['y'], data['acceleration']['z']
-                gx, gy, gz = data['gyroscope']['x'], data['gyroscope']['y'], data['gyroscope']['z']
+                gx, gy, gz = math.radians(data['gyroscope']['x']), math.radians(data['gyroscope']['y']), math.radians(data['gyroscope']['z'])
                 mx, my, mz = data['magnetometer']['x'], data['magnetometer']['y'], data['magnetometer']['z']
 
                 # 更新四元数
@@ -170,8 +178,8 @@ def tcp_server(host='127.0.0.1', port=9995):
                 client_socket.send(euler_angles.encode('utf-8'))
 
                 # 记录日志
-                logging.info("加速度计X: %.2f cm/s², Y: %.2f cm/s², Z: %.2f cm/s²", ax, ay, az)
-                logging.info("陀螺仪X: %.2f °/s, Y: %.2f °/s, Z: %.2f °/s", gx, gy, gz)
+                logging.info("加速度计X: %.2f, Y: %.2f, Z: %.2f", ax, ay, az)
+                logging.info("陀螺仪X: %.2f, Y: %.2f, Z: %.2f", gx, gy, gz)
                 logging.info("磁力计X: %.2f, Y: %.2f, Z: %.2f", mx, my, mz)
                 logging.info("四元数: q1: %.2f, q2: %.2f, q3: %.2f, q4: %.2f", q1, q2, q3, q4)
                 logging.info("欧拉角: Roll: %.2f, Pitch: %.2f, Yaw: %.2f", roll, pitch, yaw)

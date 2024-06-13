@@ -91,8 +91,25 @@ class Calibration:
         # 关闭交互模式
         plt.ioff()
         plt.show()
-  
-    
+    #存储偏移值
+    def save_calibration_data(self, filename):
+        with open(filename, 'w') as f:
+            json.dump(self.bias, f, indent=4)
+        print(f"Calibration data saved to {filename}")
+    #加载偏移值
+    def load_calibration_data(self, filename):
+        try:
+            with open(filename, 'r') as f:
+                loaded_data = json.load(f)
+                for sensor_type in self.bias:
+                    for axis in self.bias[sensor_type]:
+                        self.bias[sensor_type][axis] = loaded_data[sensor_type][axis]
+            print(f"Calibration data loaded from {filename}")
+        except FileNotFoundError:
+            print(f"Error: Calibration data file '{filename}' not found.")
+        except json.JSONDecodeError:
+            print(f"Error: Failed to decode JSON in '{filename}'. File may be corrupted.")
+
     #校准参数保存和加载函数
     def save_calibration_params(self, params, filename='calibration_params.json'):
         with open(filename, 'w') as f:

@@ -80,6 +80,7 @@ def main():
             # #校准参数保存和加载函数
             # calibration.save_calibration_params(params)
             logger.info("Calibration completed for Serial data source")
+        calibration.save_calibration_data("bias.txt")
     elif calibrate.lower() == 'n':
         logger.info("Skipping calibration")
     else:
@@ -97,6 +98,9 @@ def main():
 
         if sensor_data:
             if calibrate.lower() == 'y':
+                sensor_data = calibration.apply_calibration(sensor_data)
+            else:
+                calibration.load_calibration_data("bias.txt")
                 sensor_data = calibration.apply_calibration(sensor_data)
             window_filter.add_data(sensor_data)
             filtered_data = window_filter.get_filtered_data()
@@ -118,11 +122,11 @@ def main():
             #my_madgwick.update_marg(pose.a_x, pose.a_y, pose.a_z,pose.g_x, pose.g_y, pose.g_z, pose.m_x, pose.m_y, pose.m_z)
             #pose.pit,pose.rol,pose.yaw=my_madgwick.get_euler_angles()
             #python madgwick,这个可以
-            acc_data = np.array([[pose.a_x, pose.a_y, pose.a_z]])
-            gyro_data = np.array([[pose.g_x, pose.g_y, pose.g_z]])
-            mag_data = np.array([[pose.m_x, pose.m_y, pose.m_z]])
-            q_estimated = madgwick.updateMARG(gyr=gyro_data[0], acc=acc_data[0], mag=acc_data[0])
-            euler_angles =madgwick.get_euler_angles()
+            acc_data = np.array([pose.a_x, pose.a_y, pose.a_z])
+            gyro_data = np.array([pose.g_x, pose.g_y, pose.g_z])
+            mag_data = np.array([pose.m_x, pose.m_y, pose.m_z])
+            q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data,sensitivity=0.05)
+            euler_angles =madgwick.get_smoothed_euler_angles()
             pose.pit,pose.rol,  pose.yaw = euler_angles
             #打印计算的四元数
             #print("Estimated Quaternion (MARG):", q_estimated)
@@ -139,7 +143,7 @@ def data_collection_thread(calibration, data_retrieval):
         sensor_data = data_retrieval.get_data_from_serial()
         if sensor_data:
             calibration.add_data(sensor_data)
-            time.sleep(0.01)  # 以10ms的间隔获取数据
+            time.sleep(0.001)  # 以10ms的间隔获取数据
 def preprocess_gyro_data(g_x, g_y, g_z, threshold):
     if abs(g_x) < threshold:
         g_x = 0

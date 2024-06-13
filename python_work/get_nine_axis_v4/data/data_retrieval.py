@@ -17,12 +17,12 @@ class DataRetrieval:
 
             if 'accX' in data['buffer']:
                 result['acceleration'] = {
-                    "x": data['buffer']['accX']['buffer'][0] * 100,  # m/s² 转 cm/s²
-                    "y": data['buffer']['accY']['buffer'][0] * 100,  # m/s² 转 cm/s²
-                    "z": data['buffer']['accZ']['buffer'][0] * 100   # m/s² 转 cm/s²
-                    # "x": data['buffer']['accX']['buffer'][0] ,  # m/s² 
-                    # "y": data['buffer']['accY']['buffer'][0] ,  # m/s² 
-                    # "z": data['buffer']['accZ']['buffer'][0]    # m/s² 
+                    # "x": data['buffer']['accX']['buffer'][0] * 100,  # m/s² 转 cm/s²
+                    # "y": data['buffer']['accY']['buffer'][0] * 100,  # m/s² 转 cm/s²
+                    # "z": data['buffer']['accZ']['buffer'][0] * 100   # m/s² 转 cm/s²
+                    "x": data['buffer']['accX']['buffer'][0] ,  # m/s² 
+                    "y": data['buffer']['accY']['buffer'][0] ,  # m/s² 
+                    "z": data['buffer']['accZ']['buffer'][0]    # m/s² 
                 }
 
             if 'gyroX' in data['buffer']:
@@ -140,13 +140,15 @@ class DataRetrieval:
         mag = data['magnetometer']
         
         #加速度计和陀螺仪的灵敏度
-        accel_sensitivity = 0.061 * 0.001*9.81* 100; #单位：m/s²/LSB
-        acc_x = acc[0] * accel_sensitivity
+        #accel_sensitivity = 0.061 * 0.001*9.81; #单位：m/s²/LSB
+        accel_sensitivity = 0.061 * 0.001*9.81; #单位：m/s²/LSB
+        acc_x = acc[0]* accel_sensitivity
         acc_y = acc[1] * accel_sensitivity
         acc_z = acc[2] * accel_sensitivity
 
 
-        gyro_sensitivity = 17.50 * 0.001 * (3.14159265358979323846 / 180.0)* 57.2958; #单位：rad/s/LSB
+        #gyro_sensitivity = 17.50 * 0.001 * (3.14159265358979323846 / 180.0)* 57.2958; #单位：rad/s/LSB
+        gyro_sensitivity = 17.50 * 0.001 ; #单位：rad/s/LSB
         gyro_x = gyro[0] * gyro_sensitivity  # 转换为 rad/s
         gyro_y = gyro[1] * gyro_sensitivity  # 转换为 rad/s
         gyro_z = gyro[2] * gyro_sensitivity # 转换为 rad/s

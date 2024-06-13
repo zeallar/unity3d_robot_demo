@@ -64,21 +64,21 @@ def main():
             data_thread = threading.Thread(target=data_collection_thread, args=(calibration, data_retrieval))
             data_thread.start()
             # 主线程实时可视化数据
-            calibration.visualize_mag_data()
+            # calibration.visualize_mag_data()
             # 等待数据采集线程结束
             data_thread.join()
 
-            #calibration.calculate_bias()
-            mag_data=calibration.get_mag_data()
-            # 椭球拟合
-            params = calibration.ellipsoid_fit(mag_data)
-            # 校正数据
-            corrected_data = calibration.correct_magnetometer_data(mag_data,params)
-            # 可视化原始和校正后的数据
-            calibration.plot_magnetometer_data(mag_data, title='Original Magnetometer Data')
-            calibration.plot_magnetometer_data(corrected_data, title='Corrected Magnetometer Data')
-            #校准参数保存和加载函数
-            calibration.save_calibration_params(params)
+            calibration.calculate_bias()
+            # mag_data=calibration.get_mag_data()
+            # # 椭球拟合
+            # params = calibration.ellipsoid_fit(mag_data)
+            # # 校正数据
+            # corrected_data = calibration.correct_magnetometer_data(mag_data,params)
+            # # 可视化原始和校正后的数据
+            # calibration.plot_magnetometer_data(mag_data, title='Original Magnetometer Data')
+            # calibration.plot_magnetometer_data(corrected_data, title='Corrected Magnetometer Data')
+            # #校准参数保存和加载函数
+            # calibration.save_calibration_params(params)
             logger.info("Calibration completed for Serial data source")
     elif calibrate.lower() == 'n':
         logger.info("Skipping calibration")
@@ -104,20 +104,28 @@ def main():
             pose.a_x, pose.a_y, pose.a_z = filtered_data['acceleration']['x'], filtered_data['acceleration']['y'], filtered_data['acceleration']['z']
             pose.g_x, pose.g_y, pose.g_z = filtered_data['gyroscope']['x'], filtered_data['gyroscope']['y'], filtered_data['gyroscope']['z']
             pose.m_x, pose.m_y, pose.m_z = filtered_data['magnetometer']['x'], filtered_data['magnetometer']['y'], filtered_data['magnetometer']['z']
-
-            pose.calculatePose_Module_v2(0.01, 2.6)
+            # pose.a_x-=87
+            # pose.a_y+=10
+            #pose.a_z+=9.8
+            # pose.g_x-=2
+            # pose.g_y+=4.1
+            # pose.g_z+=2
+            pose.a_x, pose.a_y, pose.a_z=preprocess_gyro_data(pose.a_x, pose.a_y, pose.a_z,0.15)
+            pose.g_x, pose.g_y, pose.g_z=preprocess_gyro_data(pose.g_x, pose.g_y, pose.g_z,0.5)
+            
+            #pose.calculatePose_Module(0.01, 2.6)
             #Madgwick
-            # my_madgwick.update_marg(pose.a_x, pose.a_y, pose.a_z,pose.g_x, pose.g_y, pose.g_z, pose.m_x, pose.m_y, pose.m_z)
-            # pose.pit,pose.rol,pose.yaw=my_madgwick.get_euler_angles()
-            #python madgwick
-            # acc_data = np.array([[pose.a_x, pose.a_y, pose.a_z]])
-            # gyro_data = np.array([[pose.g_x, pose.g_y, pose.g_z]])
-            # mag_data = np.array([[pose.m_x, pose.m_y, pose.m_z]])
-            # q_estimated = madgwick.updateMARG(gyr=gyro_data[0], acc=acc_data[0], mag=acc_data[0])
-            # euler_angles =madgwick.get_euler_angles()
-            # pose.pit,pose.rol,  pose.yaw = euler_angles
-            # # 打印计算的四元数
-            # print("Estimated Quaternion (MARG):", q_estimated)
+            #my_madgwick.update_marg(pose.a_x, pose.a_y, pose.a_z,pose.g_x, pose.g_y, pose.g_z, pose.m_x, pose.m_y, pose.m_z)
+            #pose.pit,pose.rol,pose.yaw=my_madgwick.get_euler_angles()
+            #python madgwick,这个可以
+            acc_data = np.array([[pose.a_x, pose.a_y, pose.a_z]])
+            gyro_data = np.array([[pose.g_x, pose.g_y, pose.g_z]])
+            mag_data = np.array([[pose.m_x, pose.m_y, pose.m_z]])
+            q_estimated = madgwick.updateMARG(gyr=gyro_data[0], acc=acc_data[0], mag=acc_data[0])
+            euler_angles =madgwick.get_euler_angles()
+            pose.pit,pose.rol,  pose.yaw = euler_angles
+            #打印计算的四元数
+            #print("Estimated Quaternion (MARG):", q_estimated)
 
             
 
@@ -127,13 +135,21 @@ def main():
 
         time.sleep(0.01)
 def data_collection_thread(calibration, data_retrieval):
-    for _ in range(1000):  # 3 seconds of data at 100Hz
+    for _ in range(300):  # 3 seconds of data at 100Hz
         sensor_data = data_retrieval.get_data_from_serial()
         if sensor_data:
             calibration.add_data(sensor_data)
             time.sleep(0.01)  # 以10ms的间隔获取数据
+def preprocess_gyro_data(g_x, g_y, g_z, threshold):
+    if abs(g_x) < threshold:
+        g_x = 0
+    if abs(g_y) < threshold:
+        g_y = 0
+    if abs(g_z) < threshold:
+        g_z = 0
+    return g_x, g_y, g_z
 if __name__ == "__main__":
-    #tcp_thread = threading.Thread(target=TCPServer().start, args=(get_nine_axis,))
+    # tcp_thread = threading.Thread(target=TCPServer().start, args=(get_nine_axis,))
     tcp_thread = threading.Thread(target=TCPServer().start, args=(get_euler_angles,))
     tcp_thread.start()
     

@@ -8,7 +8,6 @@ from data.window_filter import WindowFilter
 from algorithm.pose_calculation import PoseModule
 from algorithm.madgwick import Madgwick
 from algorithm.my_madgwick import My_Madgwick
-from algorithm.common.orientation import q2euler
 from transmit.tcp_server import TCPServer
 from utils.logger import Logger
 import numpy as np
@@ -127,6 +126,9 @@ def main():
             mag_data = np.array([pose.m_x, pose.m_y, pose.m_z])
             q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data,sensitivity=0.05)
             euler_angles =madgwick.get_smoothed_euler_angles()
+
+            # q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data)
+            # euler_angles =madgwick.get_euler_angles()
             pose.pit,pose.rol,  pose.yaw = euler_angles
             #打印计算的四元数
             #print("Estimated Quaternion (MARG):", q_estimated)
@@ -135,7 +137,7 @@ def main():
 
 
             # logger.info(f"euler: {pose.a_x:.2f},{pose.a_y:.2f},{pose.a_z:.2f},{pose.g_x:.2f},{pose.g_y:.2f},{pose.g_z:.2f},{pose.m_x:.2f},{pose.m_y:.2f},{pose.m_z:.2f}\n")
-            logger.debug(f"Updated pose: Roll={pose.rol}, Pitch={pose.pit}, Yaw={pose.yaw}")
+            print(f"Updated pose: Roll={pose.rol}, Pitch={pose.pit}, Yaw={pose.yaw}")
 
         time.sleep(0.01)
 def data_collection_thread(calibration, data_retrieval):

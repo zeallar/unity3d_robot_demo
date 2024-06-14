@@ -41,6 +41,8 @@ class Madgwick:
         self._assert_numerical_iterable(gyr, '三轴陀螺仪采样')
         self._assert_numerical_iterable(acc, '三轴加速度计采样')
         self._assert_numerical_iterable(mag, '三轴磁力计采样')
+
+
         dt = self.dt if dt is None else dt
         if np.linalg.norm(gyr) == 0:
             return self.q

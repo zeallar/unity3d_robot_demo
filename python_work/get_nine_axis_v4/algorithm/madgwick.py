@@ -1,6 +1,6 @@
 import numpy as np
 import math
-#6轴融合算法
+
 class Madgwick:
     def __init__(self, beta=0.1, dt=0.01):
         self.beta = beta
@@ -31,11 +31,18 @@ class Madgwick:
         q = np.copy(q)
         q[1:] = -q[1:]
         return q
-
+    #陀螺仪数据（gyr）：弧度每秒（rad/s）
+    #加速度计数据（acc）：g（重力加速度的倍数）
+    #磁力计数据（mag）：归一化的无量纲数据
     def updateMARG(self, gyr: np.ndarray, acc: np.ndarray, mag: np.ndarray, dt: float = None, sensitivity: float = 1.0) -> np.ndarray:
         self._assert_numerical_iterable(gyr, '三轴陀螺仪采样')
         self._assert_numerical_iterable(acc, '三轴加速度计采样')
         self._assert_numerical_iterable(mag, '三轴磁力计采样')
+
+        # 确保使用弧度每秒作为陀螺仪数据的单位
+        if np.max(np.abs(gyr)) > 10:  # 假定数据是度每秒
+            gyr = np.radians(gyr)  # 转换为弧度每秒
+
         dt = self.dt if dt is None else dt
 
         if np.linalg.norm(gyr) == 0:
@@ -43,13 +50,15 @@ class Madgwick:
 
         gyr = np.asarray(gyr).flatten()
         qDot = 0.5 * self.q_prod(self.q, np.concatenate(([0], gyr))) * sensitivity
+
         a_norm = np.linalg.norm(acc)
         if a_norm > 0:
-            acc = acc / a_norm
-            mag = mag / np.linalg.norm(mag)
+            acc = acc / a_norm  # 归一化加速度计数据
+            mag = mag / np.linalg.norm(mag)  # 归一化磁力计数据
             h = self.q_prod(self.q, self.q_prod(np.concatenate(([0], mag)), self.q_conj(self.q)))
             bx = np.sqrt(h[1]**2 + h[2]**2)
             bz = h[3]
+
             f = np.array([
                 2.0 * (self.q[1] * self.q[3] - self.q[0] * self.q[2]) - acc[0],
                 2.0 * (self.q[0] * self.q[1] + self.q[2] * self.q[3]) - acc[1],
@@ -89,10 +98,8 @@ class Madgwick:
         current_euler_angles = np.array([pitch, roll, yaw])
         angle_diff = current_euler_angles - self.prev_euler_angles
 
-        # 确保角度变化在 -pi 到 pi 之间
         angle_diff = (angle_diff + np.pi) % (2 * np.pi) - np.pi
 
-        # 更新欧拉角
         self.prev_euler_angles += angle_diff
 
         return self.prev_euler_angles.tolist()
@@ -108,10 +115,8 @@ class Madgwick:
 
         delta_euler_angles = np.array([pitch, roll, yaw])
         
-        # 确保角度变化在 -pi 到 pi 之间
         delta_euler_angles = (delta_euler_angles + np.pi) % (2 * np.pi) - np.pi
 
-        # 更新累加欧拉角
         self.prev_euler_angles += delta_euler_angles
 
         return self.prev_euler_angles.tolist()

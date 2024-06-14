@@ -67,14 +67,14 @@ class DataRetrieval:
     def get_data_from_serial(self, port='COM30', baudrate=1000000):
         try:
             ser = serial.Serial(port, baudrate, timeout=1)
-            logger.info(f"在 {port} 端口以 {baudrate} 波特率建立串行连接")
+            print(f"在 {port} 端口以 {baudrate} 波特率建立串行连接")
 
             buffer = b''
             while True:
                 if ser.in_waiting > 0:
                     data = ser.read(ser.in_waiting)
                     buffer += data
-                    logger.info(f"接收到串行数据: {data.hex()}")
+                    print(f"接收到串行数据: {data.hex()}")
 
                     while len(buffer) >= 22:
                         line = buffer[:22]
@@ -83,9 +83,9 @@ class DataRetrieval:
                         result = self.parse_serial_data(line)
                         if result:
                             # 调用封装好的方法进行数据转换3
-                            logger.info(f"九轴原始数据: {result}")
+                            print(f"九轴原始数据: {result}")
                             physical_data = self.convert_to_physical_data(result)
-                            logger.info(f"处理数据行: {physical_data}")
+                            print(f"处理数据行: {physical_data}")
                             return physical_data
         except serial.SerialException as e:
             logger.error(f"串行连接错误: {e}")
@@ -97,11 +97,8 @@ class DataRetrieval:
 
         try:
             accel_x = int.from_bytes(data[0:2], byteorder='big', signed=True)
-            print(f"Accel X: {accel_x} (bytes: {data[0:2].hex()})")
             accel_y = int.from_bytes(data[2:4], byteorder='big', signed=True)
-            print(f"Accel Y: {accel_y} (bytes: {data[2:4].hex()})")
             accel_z = int.from_bytes(data[4:6], byteorder='big', signed=True)
-            print(f"Accel Z: {accel_z} (bytes: {data[4:6].hex()})")
             gyro_x = int.from_bytes(data[6:8], byteorder='big', signed=True)
             gyro_y = int.from_bytes(data[8:10], byteorder='big', signed=True)
             gyro_z = int.from_bytes(data[10:12], byteorder='big', signed=True)

@@ -96,7 +96,7 @@ class Calibration:
         with open(filename, 'w') as f:
             json.dump(self.bias, f, indent=4)
         print(f"Calibration data saved to {filename}")
-    #加载偏移值
+    #加载偏移
     def load_calibration_data(self, filename):
         try:
             with open(filename, 'r') as f:
@@ -133,7 +133,7 @@ class Calibration:
         data['gyroscope']['x'] -= self.bias['gyroscope']['x']
         data['gyroscope']['y'] -= self.bias['gyroscope']['y']
         data['gyroscope']['z'] -= self.bias['gyroscope']['z']
-        data['magnetometer']['x'] -= self.bias['magnetometer']['x']
-        data['magnetometer']['y'] -= self.bias['magnetometer']['y']
-        data['magnetometer']['z'] -= self.bias['magnetometer']['z']
+        # data['magnetometer']['x'] -= self.bias['magnetometer']['x']
+        # data['magnetometer']['y'] -= self.bias['magnetometer']['y']
+        # data['magnetometer']['z'] -= self.bias['magnetometer']['z']
         return data

@@ -3,7 +3,7 @@ import socket
 import serial
 from utils.logger import Logger
 
-PHYPHOX_URL = "http://192.168.100.118/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
+PHYPHOX_URL = "http://192.168.100.101/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
 
 logger = Logger(__name__)
 
@@ -64,7 +64,7 @@ class DataRetrieval:
             logger.info(data)
             return self.parse_udp_serial_data(data)
 
-    def get_data_from_serial(self, port='COM30', baudrate=1000000):
+    def get_data_from_serial(self, port='COM29', baudrate=1000000):
         try:
             ser = serial.Serial(port, baudrate, timeout=1)
             print(f"在 {port} 端口以 {baudrate} 波特率建立串行连接")

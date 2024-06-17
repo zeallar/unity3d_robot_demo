@@ -63,10 +63,9 @@ def main():
             data_thread = threading.Thread(target=data_collection_thread, args=(calibration, data_retrieval))
             data_thread.start()
             # 主线程实时可视化数据
-            # calibration.visualize_mag_data()
+            #calibration.visualize_mag_data()
             # 等待数据采集线程结束
             data_thread.join()
-
             calibration.calculate_bias()
             # mag_data=calibration.get_mag_data()
             # # 椭球拟合
@@ -124,6 +123,7 @@ def main():
             acc_data = np.array([pose.a_x, pose.a_y, pose.a_z])
             gyro_data = np.array([pose.g_x, pose.g_y, pose.g_z])
             mag_data = np.array([pose.m_x, pose.m_y, pose.m_z])
+            #q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data,sensitivity=0.05)
             q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data,sensitivity=0.05)
             euler_angles =madgwick.get_smoothed_euler_angles()
 

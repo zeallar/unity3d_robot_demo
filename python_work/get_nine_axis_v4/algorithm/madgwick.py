@@ -39,9 +39,9 @@ class Madgwick:
         self._assert_numerical_iterable(acc, '三轴加速度计采样')
         self._assert_numerical_iterable(mag, '三轴磁力计采样')
 
-        # 确保使用弧度每秒作为陀螺仪数据的单位
-        if np.max(np.abs(gyr)) > 10:  # 假定数据是度每秒
-            gyr = np.radians(gyr)  # 转换为弧度每秒
+        # # 确保使用弧度每秒作为陀螺仪数据的单位
+        # if np.max(np.abs(gyr)) > 10:  # 假定数据是度每秒
+        #     gyr = np.radians(gyr)  # 转换为弧度每秒
 
         dt = self.dt if dt is None else dt
 

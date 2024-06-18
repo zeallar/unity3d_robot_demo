@@ -138,7 +138,7 @@ class DataRetrieval:
         
         #加速度计和陀螺仪的灵敏度
         #accel_sensitivity = 0.061 * 0.001*9.81; #单位：m/s²/LSB
-        accel_sensitivity = 0.061 * 0.001*9.81; #单位：m/s²/LSB
+        accel_sensitivity = 0.061 * 0.001*9.807; #单位：m/s²/LSB
         acc_x = acc[0]* accel_sensitivity
         acc_y = acc[1] * accel_sensitivity
         acc_z = acc[2] * accel_sensitivity
@@ -151,7 +151,9 @@ class DataRetrieval:
         gyro_z = gyro[2] * gyro_sensitivity # 转换为 rad/s
 
         # 磁力计单位: μT
-        mag_scale = 1.0  # LSB to μT, 根据实际情况调整
+        # 转换为微特斯拉，假设量程扩展至±40µT
+        # 新的量程比例因子
+        mag_scale = 0.01  # LSB to μT, 根据实际情况调整
         mag_x = mag[0] * mag_scale
         mag_y = mag[1] * mag_scale
         mag_z = mag[2] * mag_scale

@@ -1,4 +1,4 @@
-#备份测试版本
+#这个版本可以，但是会瞬时变化,备份
 import time
 import threading
 import math
@@ -42,6 +42,25 @@ class EulerAngles:
         self.roll = roll
         self.pitch = pitch
         self.yaw = yaw
+def quaternion_to_euler(w, x, y, z):
+    # roll (x-axis rotation)
+    sinr_cosp = 2 * (w * x + y * z)
+    cosr_cosp = 1 - 2 * (x * x + y * y)
+    roll = math.atan2(sinr_cosp, cosr_cosp)
+
+    # pitch (y-axis rotation)
+    sinp = 2 * (w * y - z * x)
+    if abs(sinp) >= 1:
+        pitch = math.copysign(math.pi / 2, sinp)  # use 90 degrees if out of range
+    else:
+        pitch = math.asin(sinp)
+
+    # yaw (z-axis rotation)
+    siny_cosp = 2 * (w * z + x * y)
+    cosy_cosp = 1 - 2 * (y * y + z * z)
+    yaw = math.atan2(siny_cosp, cosy_cosp)
+
+    return roll, pitch, yaw
 
 def to_euler_angles(q):
     angles = EulerAngles(0, 0, 0)
@@ -133,7 +152,6 @@ def main():
     madgwick = Madgwick(beta=0.1, dt=0.01)
     global data_retrieval 
     data_retrieval = DataRetrieval()
-    initial_quaternion = np.array([1.0, 0.0, 0.0, 0.0])
     while True:
         accel, magnetom, gyro = read_sensors()
         accel, magnetom, gyro = compensate_sensor_errors(accel, magnetom, gyro)
@@ -145,39 +163,19 @@ def main():
         pose.g_x, pose.g_y, pose.g_z=gyro[0], gyro[1], gyro[2]
         pose.m_x, pose.m_y, pose.m_z=magnetom[0], magnetom[1], magnetom[2]
 
-        # pose.a_x, pose.a_y, pose.a_z=preprocess_gyro_data(pose.a_x, pose.a_y, pose.a_z,0.15)
-        # pose.g_x, pose.g_y, pose.g_z=preprocess_gyro_data(pose.g_x, pose.g_y, pose.g_z,0.5)
+        pose.a_x, pose.a_y, pose.a_z=preprocess_gyro_data(pose.a_x, pose.a_y, pose.a_z,0.15)
+        pose.g_x, pose.g_y, pose.g_z=preprocess_gyro_data(pose.g_x, pose.g_y, pose.g_z,0.5)
 
-        #ahrs.update(accel[0], accel[1], accel[2],gyro[0], gyro[1], gyro[2], magnetom[0], magnetom[1], magnetom[2], deltat)
-        #q = ahrs.get_quaternion()
+        ahrs.update(accel[0], accel[1], accel[2],gyro[0], gyro[1], gyro[2], magnetom[0], magnetom[1], magnetom[2], deltat)
+        q = ahrs.get_quaternion()
+        roll, pitch, yaw= quaternion_to_euler(q[0],q[1],q[2],q[3])
+        yaw += 0.8
+        if yaw > math.pi:
+            yaw -= 2 * math.pi
 
-        acc_data = np.array([[pose.a_x, pose.a_y, pose.a_z]])
-        gyro_data = np.array([[pose.g_x, pose.g_y, pose.g_z]])
-        mag_data = np.array([[pose.m_x, pose.m_y, pose.m_z]])
-        # q = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=mag_data)
+        send_to_pc(roll, pitch, yaw)
 
-        # #qua = Quaternion(q[0], q[1], q[2], q[3])
-        # eul=EulerAndQuaternionTransform(q[0], q[1], q[2], q[3])
-        # send_to_pc(eul[0],eul[1], eul[2])
-        # eul = to_euler_angles(qua)
-        # eul.yaw += 0.8
-        # if eul.yaw > math.pi:
-        #     eul.yaw -= 2 * math.pi
-
-        # send_to_pc(eul.roll, eul.pitch, eul.yaw)
-
-
-        # 初始化 Madgwick 滤波器
-        madgwick = Madgwick()
-        # 初始化四元数，假设初始姿态为单位四元数
-        
-        # 估计方向
-        q= madgwick.updateMARG(initial_quaternion, gyr=gyro_data[0], acc=acc_data[0], mag=mag_data[0])
-        initial_quaternion = q
-        eul=EulerAndQuaternionTransform(q[0], q[1], q[2], q[3])
-        send_to_pc(eul[0],eul[1], eul[2])
-
-        time.sleep(0.0005)
+        time.sleep(0.01)
 
 if __name__ == "__main__":
     # tcp_thread = threading.Thread(target=TCPServer().start, args=(get_nine_axis,))

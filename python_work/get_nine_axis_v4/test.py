@@ -1,3 +1,4 @@
+#这个版本可以，但是会瞬时变化
 import time
 import threading
 import math
@@ -151,7 +152,6 @@ def main():
     madgwick = Madgwick(beta=0.1, dt=0.01)
     global data_retrieval 
     data_retrieval = DataRetrieval()
-    initial_quaternion = np.array([1.0, 0.0, 0.0, 0.0])
     while True:
         accel, magnetom, gyro = read_sensors()
         accel, magnetom, gyro = compensate_sensor_errors(accel, magnetom, gyro)
@@ -168,13 +168,12 @@ def main():
 
         ahrs.update(accel[0], accel[1], accel[2],gyro[0], gyro[1], gyro[2], magnetom[0], magnetom[1], magnetom[2], deltat)
         q = ahrs.get_quaternion()
-        roll, pitch, yaw= quaternion_to_euler(q[0],q[1],q[2],q[3])
+        roll, pitch, yaw= ahrs.quaternion_to_euler()
         yaw += 0.8
         if yaw > math.pi:
             yaw -= 2 * math.pi
 
         send_to_pc(roll, pitch, yaw)
-
         time.sleep(0.01)
 
 if __name__ == "__main__":

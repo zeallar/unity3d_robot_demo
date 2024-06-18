@@ -137,18 +137,14 @@ def main():
 
             madgwickFilter.update(pose.a_x, pose.a_y, pose.a_z,pose.g_x, pose.g_y, pose.g_z, pose.m_x, pose.m_y, pose.m_z, 0.01)
             q = madgwickFilter.get_quaternion()
-            pose.rol,pose.pit,  pose.yaw  = madgwickFilter.quaternion_to_euler(q)
+            pose.rol,pose.pit,  pose.yaw  = madgwickFilter.quaternion_to_euler()
 
             # q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data)
             # euler_angles =madgwick.get_euler_angles()
             #pose.pit,pose.rol,  pose.yaw = euler_angles
             #打印计算的四元数
             #print("Estimated Quaternion (MARG):", q_estimated)
-
-            
-
-
-            # logger.info(f"euler: {pose.a_x:.2f},{pose.a_y:.2f},{pose.a_z:.2f},{pose.g_x:.2f},{pose.g_y:.2f},{pose.g_z:.2f},{pose.m_x:.2f},{pose.m_y:.2f},{pose.m_z:.2f}\n")
+            #logger.info(f"euler: {pose.a_x:.2f},{pose.a_y:.2f},{pose.a_z:.2f},{pose.g_x:.2f},{pose.g_y:.2f},{pose.g_z:.2f},{pose.m_x:.2f},{pose.m_y:.2f},{pose.m_z:.2f}\n")
             print(f"Updated pose: Roll={pose.rol}, Pitch={pose.pit}, Yaw={pose.yaw}")
 
         time.sleep(0.01)
@@ -172,8 +168,8 @@ def preprocess_gyro_data(g_x, g_y, g_z, threshold):
         g_z = 0
     return g_x, g_y, g_z
 if __name__ == "__main__":
-    # tcp_thread = threading.Thread(target=TCPServer().start, args=(get_nine_axis,))
-    tcp_thread = threading.Thread(target=TCPServer().start, args=(get_euler_angles,))
+    tcp_thread = threading.Thread(target=TCPServer().start, args=(get_nine_axis,))
+    # tcp_thread = threading.Thread(target=TCPServer().start, args=(get_euler_angles,))
     tcp_thread.start()
     
     main()

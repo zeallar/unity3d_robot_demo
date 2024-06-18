@@ -6,7 +6,8 @@ from data.data_structure import Data
 from data.calibration import Calibration
 from data.window_filter import WindowFilter
 from algorithm.pose_calculation import PoseModule
-from algorithm.madgwick import Madgwick
+from algorithm.madgwickFilter import MadgwickAHRS
+from algorithm.madgwick_v0 import Madgwick
 from algorithm.my_madgwick import My_Madgwick
 from transmit.tcp_server import TCPServer
 from utils.logger import Logger
@@ -29,6 +30,7 @@ def main():
     calibration = Calibration()
     my_madgwick = My_Madgwick(beta=0.1, sample_freq=256.0)
     madgwick = Madgwick(beta=0.1, dt=0.01)
+    madgwickFilter=MadgwickAHRS()
     window_filter = WindowFilter(window_size=10)
 
     # Choose data source
@@ -40,9 +42,9 @@ def main():
         return
 
     # Choose whether to calibrate
-    calibrate = input("Do you want to calibrate the sensor data? (y/n): ")
-
-    if calibrate.lower() == 'y':
+    calibrate = input("Do you want to calibrate the acc gyr sensor data? (y/n): ")
+    mag_calibrate= input("Do you want to calibrate the mag sensor data? (y/n): ")
+    if calibrate.lower() == 'y' and mag_calibrate.lower() == 'n':
         if source == '1':
             for _ in range(300):  # 3 seconds of data at 100Hz
                 sensor_data = data_retrieval.get_data_from_phyphox()
@@ -60,13 +62,14 @@ def main():
             calibration.calculate_bias()
             logger.info("Calibration completed for UDP data source")
         elif source == '3':
-            data_thread = threading.Thread(target=data_collection_thread, args=(calibration, data_retrieval))
+            data_thread = threading.Thread(target=data_collection_thread, args=(calibration, data_retrieval,source))
             data_thread.start()
             # 主线程实时可视化数据
             #calibration.visualize_mag_data()
             # 等待数据采集线程结束
             data_thread.join()
             calibration.calculate_bias()
+            
             # mag_data=calibration.get_mag_data()
             # # 椭球拟合
             # params = calibration.ellipsoid_fit(mag_data)
@@ -79,6 +82,14 @@ def main():
             # calibration.save_calibration_params(params)
             logger.info("Calibration completed for Serial data source")
         calibration.save_calibration_data("bias.txt")
+    if mag_calibrate.lower() == 'y' and calibrate.lower() == 'n':
+        data_thread = threading.Thread(target=data_collection_thread, args=(calibration, data_retrieval,source))
+        data_thread.start()
+        # 主线程实时可视化数据
+        calibration.visualize_mag_data()
+        # 等待数据采集线程结束
+        data_thread.join()
+        calibration.save_magnetometer_data_to_csv('magnetometer_data.csv')    
     elif calibrate.lower() == 'n':
         logger.info("Skipping calibration")
     else:
@@ -106,14 +117,9 @@ def main():
             pose.a_x, pose.a_y, pose.a_z = filtered_data['acceleration']['x'], filtered_data['acceleration']['y'], filtered_data['acceleration']['z']
             pose.g_x, pose.g_y, pose.g_z = filtered_data['gyroscope']['x'], filtered_data['gyroscope']['y'], filtered_data['gyroscope']['z']
             pose.m_x, pose.m_y, pose.m_z = filtered_data['magnetometer']['x'], filtered_data['magnetometer']['y'], filtered_data['magnetometer']['z']
-            # pose.a_x-=87
-            # pose.a_y+=10
-            #pose.a_z+=9.8
-            # pose.g_x-=2
-            # pose.g_y+=4.1
-            # pose.g_z+=2
-            pose.a_x, pose.a_y, pose.a_z=preprocess_gyro_data(pose.a_x, pose.a_y, pose.a_z,0.15)
-            pose.g_x, pose.g_y, pose.g_z=preprocess_gyro_data(pose.g_x, pose.g_y, pose.g_z,0.5)
+          
+            # pose.a_x, pose.a_y, pose.a_z=preprocess_gyro_data(pose.a_x, pose.a_y, pose.a_z,0.15)
+            # pose.g_x, pose.g_y, pose.g_z=preprocess_gyro_data(pose.g_x, pose.g_y, pose.g_z,0.5)
             
             #pose.calculatePose_Module(0.01, 2.6)
             #Madgwick
@@ -123,13 +129,19 @@ def main():
             acc_data = np.array([pose.a_x, pose.a_y, pose.a_z])
             gyro_data = np.array([pose.g_x, pose.g_y, pose.g_z])
             mag_data = np.array([pose.m_x, pose.m_y, pose.m_z])
-            #q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data,sensitivity=0.05)
-            q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data,sensitivity=0.05)
-            euler_angles =madgwick.get_smoothed_euler_angles()
+            #q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=mag_data,sensitivity=0.05)
+            # q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=mag_data)
+            # euler_angles =madgwick.get_euler_angles()
+            # pose.pit,pose.rol,pose.yaw = euler_angles
+
+
+            madgwickFilter.update(pose.a_x, pose.a_y, pose.a_z,pose.g_x, pose.g_y, pose.g_z, pose.m_x, pose.m_y, pose.m_z, 0.01)
+            q = madgwickFilter.get_quaternion()
+            pose.rol,pose.pit,  pose.yaw  = madgwickFilter.quaternion_to_euler(q)
 
             # q_estimated = madgwick.updateMARG(gyr=gyro_data, acc=acc_data, mag=acc_data)
             # euler_angles =madgwick.get_euler_angles()
-            pose.pit,pose.rol,  pose.yaw = euler_angles
+            #pose.pit,pose.rol,  pose.yaw = euler_angles
             #打印计算的四元数
             #print("Estimated Quaternion (MARG):", q_estimated)
 
@@ -140,9 +152,14 @@ def main():
             print(f"Updated pose: Roll={pose.rol}, Pitch={pose.pit}, Yaw={pose.yaw}")
 
         time.sleep(0.01)
-def data_collection_thread(calibration, data_retrieval):
-    for _ in range(300):  # 3 seconds of data at 100Hz
-        sensor_data = data_retrieval.get_data_from_serial()
+def data_collection_thread(calibration, data_retrieval,source):
+    for _ in range(2300):  # 3 seconds of data at 100Hz
+        if source == '1':
+            sensor_data = data_retrieval.get_data_from_phyphox()
+        elif source == '2':
+            sensor_data = data_retrieval.get_data_from_udp()
+        elif source == '3':
+            sensor_data = data_retrieval.get_data_from_serial()
         if sensor_data:
             calibration.add_data(sensor_data)
             time.sleep(0.001)  # 以10ms的间隔获取数据

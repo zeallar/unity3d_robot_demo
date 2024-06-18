@@ -4,10 +4,16 @@ import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
 from mpl_toolkits.mplot3d import Axes3D
 import time
+import csv
 class Calibration:
     def __init__(self):
+        self.GRAVITY=9.802
         self.calibration_data = {'acceleration': [], 'gyroscope': [], 'magnetometer': []}
         self.bias = {'acceleration': {'x': 0, 'y': 0, 'z': 0}, 'gyroscope': {'x': 0, 'y': 0, 'z': 0}, 'magnetometer': {'x': 0, 'y': 0, 'z': 0}}
+        self.MAGN_ELLIPSOID_CENTER = np.array([-1.22362, -3.49591, -28.3068])
+        self.MAGN_ELLIPSOID_TRANSFORM = np.array([[0.97269, 0.0124029, -0.00955096], 
+                                                  [0.0124029, 0.994026, 6.33932e-05], 
+                                                  [-0.00955096, 6.33932e-05, 0.943093]])
 
     def add_data(self, data):
         self.calibration_data['acceleration'].append([data['acceleration']['x'], data['acceleration']['y'], data['acceleration']['z']])
@@ -15,7 +21,7 @@ class Calibration:
         self.calibration_data['magnetometer'].append([data['magnetometer']['x'], data['magnetometer']['y'], data['magnetometer']['z']])
 
     def calculate_bias(self):
-        for sensor in self.calibration_data:
+        for sensor in ['acceleration','gyroscope']:
             data = np.array(self.calibration_data[sensor])
             self.bias[sensor]['x'] = np.mean(data[:, 0])
             self.bias[sensor]['y'] = np.mean(data[:, 1])
@@ -129,11 +135,31 @@ class Calibration:
     def apply_calibration(self, data):
         data['acceleration']['x'] -= self.bias['acceleration']['x']
         data['acceleration']['y'] -= self.bias['acceleration']['y']
-        data['acceleration']['z'] -= self.bias['acceleration']['z']
+        data['acceleration']['z'] -= self.bias['acceleration']['z']+self.GRAVITY
         data['gyroscope']['x'] -= self.bias['gyroscope']['x']
         data['gyroscope']['y'] -= self.bias['gyroscope']['y']
         data['gyroscope']['z'] -= self.bias['gyroscope']['z']
-        # data['magnetometer']['x'] -= self.bias['magnetometer']['x']
-        # data['magnetometer']['y'] -= self.bias['magnetometer']['y']
-        # data['magnetometer']['z'] -= self.bias['magnetometer']['z']
+  
+        # Compensate magnetometer error
+        magnetom = np.array([data['magnetometer']['x'], data['magnetometer']['y'], data['magnetometer']['z']])
+        magnetom_tmp = magnetom - self.MAGN_ELLIPSOID_CENTER
+        magnetom_corrected = np.dot(self.MAGN_ELLIPSOID_TRANSFORM, magnetom_tmp)
+        
+        data['magnetometer']['x'] = magnetom_corrected[0]
+        data['magnetometer']['y'] = magnetom_corrected[1]
+        data['magnetometer']['z'] = magnetom_corrected[2]
         return data
+    # 将磁力计数据保存为CSV文件
+    def save_magnetometer_data_to_csv(self, filename):
+        data = np.array(self.calibration_data['magnetometer'])
+        if data.size == 0:
+            print("No magnetometer data to save.")
+            return
+
+        # 保存为三列
+        with open(filename, 'w', newline='') as file:
+            writer = csv.writer(file)
+            #writer.writerow(['Mag X', 'Mag Y', 'Mag Z'])
+            writer.writerows(data)
+
+        print(f"Magnetometer data saved to {filename}")

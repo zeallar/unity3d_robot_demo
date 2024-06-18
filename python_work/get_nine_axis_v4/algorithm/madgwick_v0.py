@@ -42,7 +42,6 @@ class Madgwick:
         self._assert_numerical_iterable(acc, '三轴加速度计采样')
         self._assert_numerical_iterable(mag, '三轴磁力计采样')
 
-
         dt = self.dt if dt is None else dt
         if np.linalg.norm(gyr) == 0:
             return self.q
@@ -83,6 +82,9 @@ class Madgwick:
         self.q = self.q + qDot * dt
         self.q /= np.linalg.norm(self.q)
         
+        return self.q
+
+    def get_quaternion(self):
         return self.q
     
     def get_euler_angles(self):

@@ -3,7 +3,7 @@ import socket
 import serial
 from utils.logger import Logger
 
-PHYPHOX_URL = "http://192.168.100.101/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
+PHYPHOX_URL = "http://192.168.100.105/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
 
 logger = Logger(__name__)
 
@@ -27,13 +27,13 @@ class DataRetrieval:
 
             if 'gyroX' in data['buffer']:
                 result['gyroscope'] = {
-                    "x": data['buffer']['gyroX']['buffer'][0] * 57.2958,  # rad/s 转 度/s
-                    "y": data['buffer']['gyroY']['buffer'][0] * 57.2958,  # rad/s 转 度/s
-                    "z": data['buffer']['gyroZ']['buffer'][0] * 57.2958   # rad/s 转 度/s
+                    # "x": data['buffer']['gyroX']['buffer'][0] * 57.2958,  # rad/s 转 度/s
+                    # "y": data['buffer']['gyroY']['buffer'][0] * 57.2958,  # rad/s 转 度/s
+                    # "z": data['buffer']['gyroZ']['buffer'][0] * 57.2958   # rad/s 转 度/s
 
-                    # "x": data['buffer']['gyroX']['buffer'][0] ,  # rad/s 
-                    # "y": data['buffer']['gyroY']['buffer'][0] ,  # rad/s 
-                    # "z": data['buffer']['gyroZ']['buffer'][0]    # rad/s 
+                    "x": data['buffer']['gyroX']['buffer'][0] ,  # rad/s 
+                    "y": data['buffer']['gyroY']['buffer'][0] ,  # rad/s 
+                    "z": data['buffer']['gyroZ']['buffer'][0]    # rad/s 
                 }
 
             if 'magX' in data['buffer']:
@@ -46,7 +46,7 @@ class DataRetrieval:
                     # "z": data['buffer']['magZ']['buffer'][0]*1000#nt
                 }
 
-            logger.info("从 Phyphox 获取数据成功")
+            #logger.info("从 Phyphox 获取数据成功")
             return result
         except requests.RequestException as e:
             logger.error(f"获取数据失败: {e}")

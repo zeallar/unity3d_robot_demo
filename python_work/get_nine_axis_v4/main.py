@@ -89,7 +89,7 @@ def main():
         calibration.visualize_mag_data()
         # 等待数据采集线程结束
         data_thread.join()
-        calibration.save_magnetometer_data_to_csv('magnetometer_data.csv')    
+        #calibration.save_magnetometer_data_to_csv('magnetometer_data.csv')    
     elif calibrate.lower() == 'n':
         logger.info("Skipping calibration")
     else:

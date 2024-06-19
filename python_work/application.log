@@ -726,3 +726,72 @@
 2024-06-18 11:58:55 [INFO] Connection from ('127.0.0.1', 54759)
 2024-06-18 11:59:30 [WARNING] Connection to ('127.0.0.1', 54759) was aborted
 2024-06-18 11:59:30 [INFO] Closed connection to ('127.0.0.1', 54759)
+2024-06-18 14:26:37 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 14:26:43 [INFO] Skipping calibration
+2024-06-18 14:26:47 [INFO] Connection from ('127.0.0.1', 60637)
+2024-06-18 14:27:01 [WARNING] Connection to ('127.0.0.1', 60637) was reset by peer
+2024-06-18 14:27:01 [INFO] Closed connection to ('127.0.0.1', 60637)
+2024-06-18 14:27:59 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 14:28:08 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 14:28:11 [INFO] Connection from ('127.0.0.1', 61574)
+2024-06-18 14:28:11 [INFO] Closed connection to ('127.0.0.1', 61574)
+2024-06-18 14:28:26 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 14:28:29 [INFO] Connection from ('127.0.0.1', 61732)
+2024-06-18 14:28:29 [INFO] Closed connection to ('127.0.0.1', 61732)
+2024-06-18 14:29:04 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 14:29:06 [INFO] Connection from ('127.0.0.1', 61898)
+2024-06-18 14:30:15 [WARNING] Connection to ('127.0.0.1', 61898) was aborted
+2024-06-18 14:30:15 [INFO] Closed connection to ('127.0.0.1', 61898)
+2024-06-18 14:30:16 [INFO] Connection from ('127.0.0.1', 64689)
+2024-06-18 14:30:19 [WARNING] Connection to ('127.0.0.1', 64689) was aborted
+2024-06-18 14:30:19 [INFO] Closed connection to ('127.0.0.1', 64689)
+2024-06-18 14:31:05 [INFO] Connection from ('127.0.0.1', 50206)
+2024-06-18 14:31:32 [WARNING] Connection to ('127.0.0.1', 50206) was aborted
+2024-06-18 14:31:32 [INFO] Closed connection to ('127.0.0.1', 50206)
+2024-06-18 14:31:49 [ERROR] 获取数据失败: HTTPConnectionPool(host='192.168.100.105', port=80): Max retries exceeded with url: /get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000209DFFABE60>: Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。'))
+2024-06-18 14:57:20 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 14:57:28 [INFO] Skipping calibration
+2024-06-18 14:57:32 [INFO] Connection from ('127.0.0.1', 63315)
+2024-06-18 14:57:49 [WARNING] Connection to ('127.0.0.1', 63315) was aborted
+2024-06-18 14:57:49 [INFO] Closed connection to ('127.0.0.1', 63315)
+2024-06-18 14:58:30 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 14:58:34 [INFO] Skipping calibration
+2024-06-18 14:58:39 [INFO] Connection from ('127.0.0.1', 63478)
+2024-06-18 15:02:57 [WARNING] Connection to ('127.0.0.1', 63478) was aborted
+2024-06-18 15:02:57 [INFO] Closed connection to ('127.0.0.1', 63478)
+2024-06-18 15:28:32 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 15:28:37 [INFO] Skipping calibration
+2024-06-18 15:28:43 [INFO] Connection from ('127.0.0.1', 51059)
+2024-06-18 15:29:08 [WARNING] Connection to ('127.0.0.1', 51059) was aborted
+2024-06-18 15:29:08 [INFO] Closed connection to ('127.0.0.1', 51059)
+2024-06-18 15:29:20 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 15:31:36 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 15:31:40 [INFO] Connection from ('127.0.0.1', 51378)
+2024-06-18 15:31:40 [INFO] Closed connection to ('127.0.0.1', 51378)
+2024-06-18 15:32:16 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 15:32:20 [INFO] Connection from ('127.0.0.1', 51477)
+2024-06-18 15:32:20 [INFO] Closed connection to ('127.0.0.1', 51477)
+2024-06-18 15:32:42 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 15:32:47 [INFO] Connection from ('127.0.0.1', 51525)
+2024-06-18 15:33:18 [WARNING] Connection to ('127.0.0.1', 51525) was aborted
+2024-06-18 15:33:18 [INFO] Closed connection to ('127.0.0.1', 51525)
+2024-06-18 15:38:30 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 15:38:42 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 16:01:08 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 16:01:39 [INFO] Skipping calibration
+2024-06-18 16:01:47 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 16:05:06 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 16:07:35 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 16:07:56 [ERROR] 获取数据失败: HTTPConnectionPool(host='192.168.100.105', port=80): Max retries exceeded with url: /get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000019163A7FDA0>, 'Connection to 192.168.100.105 timed out. (connect timeout=None)'))
+2024-06-18 16:08:22 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 16:08:27 [INFO] Connection from ('127.0.0.1', 56097)
+2024-06-18 16:09:04 [WARNING] Connection to ('127.0.0.1', 56097) was aborted
+2024-06-18 16:09:04 [INFO] Closed connection to ('127.0.0.1', 56097)
+2024-06-18 17:21:27 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 17:23:13 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 17:25:00 [ERROR] 获取数据失败: HTTPConnectionPool(host='192.168.100.105', port=80): Max retries exceeded with url: /get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001F863E86E40>: Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。'))
+2024-06-18 17:49:22 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 18:08:03 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 18:08:14 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 18:46:10 [INFO] TCP server listening on 127.0.0.1:9995
+2024-06-18 18:50:49 [INFO] TCP server listening on 127.0.0.1:9995

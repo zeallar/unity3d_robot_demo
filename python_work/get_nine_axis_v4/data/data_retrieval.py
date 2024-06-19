@@ -112,9 +112,9 @@ class DataRetrieval:
             gyro_x = self.convert_signed(gyro_x)
             gyro_y = self.convert_signed(gyro_y)
             gyro_z = self.convert_signed(gyro_z)
-            mag_x = self.convert_signed(mag_x)
-            mag_y = self.convert_signed(mag_y)
-            mag_z = self.convert_signed(mag_z)
+            # mag_x = self.convert_signed(mag_x)
+            # mag_y = self.convert_signed(mag_y)
+            # mag_z = self.convert_signed(mag_z)
 
             result = {
                 'acceleration': [accel_x, accel_y, accel_z],
@@ -153,7 +153,7 @@ class DataRetrieval:
         # 磁力计单位: μT
         # 转换为微特斯拉，假设量程扩展至±40µT
         # 新的量程比例因子
-        mag_scale = 0.01  # LSB to μT, 根据实际情况调整
+        mag_scale =0.1 #3200.0 / 32768.0#0.01  # LSB to μT, 根据实际情况调整
         mag_x = mag[0] * mag_scale
         mag_y = mag[1] * mag_scale
         mag_z = mag[2] * mag_scale
@@ -216,3 +216,4 @@ class DataRetrieval:
                     crc16 >>= 1
         crc16 = ((crc16 & 0xFF) << 8) | (crc16 >> 8)  # 交换字节
         return f"{crc16:04x}"
+    

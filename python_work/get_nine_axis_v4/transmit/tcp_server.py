@@ -22,10 +22,10 @@ class TCPServer:
 
             try:
                 while True:
-                    a_x, a_y, a_z,g_x, g_y, g_z,m_x, m_y, m_z= get_euler_angles()
-                    euler_angles = f"euler: {a_x:.2f},{a_y:.2f},{a_z:.2f},{g_x:.2f},{g_y:.2f},{g_z:.2f},{m_x:.2f},{m_y:.2f},{m_z:.2f}\n"
-                    # roll, pitch, yaw = get_euler_angles()
-                    # euler_angles = f"euler: {roll:.2f},{pitch:.2f},{yaw:.2f}\n"
+                    # a_x, a_y, a_z,g_x, g_y, g_z,m_x, m_y, m_z= get_euler_angles()
+                    # euler_angles = f"euler: {a_x:.2f},{a_y:.2f},{a_z:.2f},{g_x:.2f},{g_y:.2f},{g_z:.2f},{m_x:.2f},{m_y:.2f},{m_z:.2f}\n"
+                    roll, pitch, yaw = get_euler_angles()
+                    euler_angles = f"euler: {roll:.2f},{pitch:.2f},{yaw:.2f}\n"
                     client_socket.send(euler_angles.encode('utf-8'))
 
                     #logger.info("Euler angles: Roll: %.2f, Pitch: %.2f, Yaw: %.2f", roll, pitch, yaw)

@@ -1,4 +1,4 @@
-#这个版本可以，但是会瞬时变化
+#这个版本可以，产品上用的
 import time
 import threading
 import math
@@ -125,7 +125,7 @@ def compensate_sensor_errors(accel, magnetom, gyro):
     return accel, magnetom, gyro
 
 def read_sensors():
-    sensor_data = data_retrieval.get_data_from_phyphox()
+    sensor_data = data_retrieval.get_data_from_serial()
     accel = [sensor_data['acceleration']['x'], sensor_data['acceleration']['y'], sensor_data['acceleration']['z']]
     magnetom = [sensor_data['magnetometer']['x'], sensor_data['magnetometer']['y'], sensor_data['magnetometer']['z']]
     gyro = [sensor_data['gyroscope']['x'], sensor_data['gyroscope']['y'], sensor_data['gyroscope']['z']]

@@ -11,17 +11,33 @@ from algorithm.origin_madgwick import Madgwick
 import numpy as np
 # Constants
 GRAVITY = 9.802
-GYRO_X_OFFSET = 0.00337001938739419
-GYRO_Y_OFFSET = 0.0005921793470098631
-GYRO_Z_OFFSET = 0.00255169917738042
-ACCEL_X_OFFSET = 0.006626719665527345
-ACCEL_Y_OFFSET = 0.041801074218750005
-ACCEL_Z_OFFSET = 9.8
-MAGN_ELLIPSOID_CENTER = [-0.010116, 0.0202537, 0.988309]
+#这是手机的
+# GYRO_X_OFFSET = 0.00337001938739419
+# GYRO_Y_OFFSET = 0.0005921793470098631
+# GYRO_Z_OFFSET = 0.00255169917738042
+# ACCEL_X_OFFSET = 0.006626719665527345
+# ACCEL_Y_OFFSET = 0.041801074218750005
+# ACCEL_Z_OFFSET = 9.8
+#这个是产品的
+GYRO_X_OFFSET = 0.020479999999999998
+GYRO_Y_OFFSET = -0.06695000000000002
+GYRO_Z_OFFSET = -0.11270000000000004
+ACCEL_X_OFFSET = -0.28642000000000006
+ACCEL_Y_OFFSET = 0.0023799999999999997
+ACCEL_Z_OFFSET = 9.975689999999998
+#这是手机的
+# MAGN_ELLIPSOID_CENTER = [-0.010116, 0.0202537, 0.988309]
+# MAGN_ELLIPSOID_TRANSFORM = [
+#     [0.97269, 0.0124029, -0.00955096],
+#     [0.0124029, 0.994026, 6.33932e-05],
+#     [-0.00955096, 6.33932e-05, 0.943093]
+# ]
+#这是产品的
+MAGN_ELLIPSOID_CENTER = [-5.96847, -8.53266, -6.55064]
 MAGN_ELLIPSOID_TRANSFORM = [
-    [0.97269, 0.0124029, -0.00955096],
-    [0.0124029, 0.994026, 6.33932e-05],
-    [-0.00955096, 6.33932e-05, 0.943093]
+    [0.968578, 0.000440177, 0.0177124],
+    [0.000440177, 0.994927, -0.0111642],
+    [0.0177124, -0.0111642, 0.9665]
 ]
 def get_euler_angles():
     return pose.rol, pose.pit, pose.yaw
@@ -125,7 +141,7 @@ def compensate_sensor_errors(accel, magnetom, gyro):
     return accel, magnetom, gyro
 
 def read_sensors():
-    sensor_data = data_retrieval.get_data_from_phyphox()
+    sensor_data = data_retrieval.read_json_data()
     accel = [sensor_data['acceleration']['x'], sensor_data['acceleration']['y'], sensor_data['acceleration']['z']]
     magnetom = [sensor_data['magnetometer']['x'], sensor_data['magnetometer']['y'], sensor_data['magnetometer']['z']]
     gyro = [sensor_data['gyroscope']['x'], sensor_data['gyroscope']['y'], sensor_data['gyroscope']['z']]
@@ -154,7 +170,7 @@ def main():
     data_retrieval = DataRetrieval()
     while True:
         accel, magnetom, gyro = read_sensors()
-        #accel, magnetom, gyro = compensate_sensor_errors(accel, magnetom, gyro)
+        accel, magnetom, gyro = compensate_sensor_errors(accel, magnetom, gyro)
 
         time_now = time.time()
         deltat = time_now - time_former

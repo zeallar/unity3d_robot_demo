@@ -89,6 +89,7 @@ def main():
         calibration.visualize_mag_data()
         # 等待数据采集线程结束
         data_thread.join()
+        #保存采集到的数据
         #calibration.save_magnetometer_data_to_csv('magnetometer_data.csv')    
     elif calibrate.lower() == 'n':
         logger.info("Skipping calibration")
@@ -103,7 +104,7 @@ def main():
         elif source == '2':
             sensor_data = data_retrieval.get_data_from_udp()
         elif source == '3':
-            sensor_data = data_retrieval.get_data_from_serial()
+            sensor_data = data_retrieval.read_json_data()
 
         if sensor_data:
             if calibrate.lower() == 'y':
@@ -149,16 +150,21 @@ def main():
 
         time.sleep(0.01)
 def data_collection_thread(calibration, data_retrieval,source):
-    for _ in range(2300):  # 3 seconds of data at 100Hz
+    for _ in range(1000):  # 3 seconds of data at 100Hz
         if source == '1':
             sensor_data = data_retrieval.get_data_from_phyphox()
         elif source == '2':
             sensor_data = data_retrieval.get_data_from_udp()
         elif source == '3':
-            sensor_data = data_retrieval.get_data_from_serial()
+            sensor_data = data_retrieval.read_json_data()
         if sensor_data:
+            # 保留小数点后两位
+            for sensor, axes in sensor_data.items():
+                for axis in axes:
+                    sensor_data[sensor][axis] = round(axes[axis], 2)
+            logger.info(f"sensor_data: {sensor_data}")
             calibration.add_data(sensor_data)
-            time.sleep(0.001)  # 以10ms的间隔获取数据
+            time.sleep(0.01)  # 以10ms的间隔获取数据
 def preprocess_gyro_data(g_x, g_y, g_z, threshold):
     if abs(g_x) < threshold:
         g_x = 0
@@ -171,5 +177,4 @@ if __name__ == "__main__":
     tcp_thread = threading.Thread(target=TCPServer().start, args=(get_nine_axis,))
     # tcp_thread = threading.Thread(target=TCPServer().start, args=(get_euler_angles,))
     tcp_thread.start()
-    
     main()

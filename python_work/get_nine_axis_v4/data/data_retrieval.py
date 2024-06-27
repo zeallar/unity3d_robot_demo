@@ -2,8 +2,10 @@ import requests
 import socket
 import serial
 from utils.logger import Logger
+import json
+import re
 
-PHYPHOX_URL = "http://192.168.100.105/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
+PHYPHOX_URL = "http://192.168.100.112/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
 
 logger = Logger(__name__)
 
@@ -64,32 +66,81 @@ class DataRetrieval:
             logger.info(data)
             return self.parse_udp_serial_data(data)
 
-    def get_data_from_serial(self, port='COM29', baudrate=1000000):
+    def get_data_from_serial(self, port='COM27', baudrate=115200):
         try:
             ser = serial.Serial(port, baudrate, timeout=1)
             print(f"在 {port} 端口以 {baudrate} 波特率建立串行连接")
 
-            buffer = b''
+            packet_length = 22  # 每个数据包的长度为22字节
+
             while True:
                 if ser.in_waiting > 0:
                     data = ser.read(ser.in_waiting)
-                    buffer += data
                     print(f"接收到串行数据: {data.hex()}")
+                    logger.info(f"接收到串行数据: {data.hex()}")
 
-                    while len(buffer) >= 22:
-                        line = buffer[:22]
-                        buffer = buffer[22:]
+                    buffer = data  # 每次直接读取的数据作为buffer
+                    while len(buffer) >= packet_length:
+                        # 读取一个完整数据包
+                        line = buffer[:packet_length]
+                        buffer = buffer[packet_length:]
                         
                         result = self.parse_serial_data(line)
                         if result:
-                            # 调用封装好的方法进行数据转换3
                             print(f"九轴原始数据: {result}")
+                            logger.info(f"九轴原始数据: {result}")
                             physical_data = self.convert_to_physical_data(result)
                             print(f"处理数据行: {physical_data}")
                             return physical_data
+
+                    # 清空缓冲区
+                    buffer = b''
         except serial.SerialException as e:
             logger.error(f"串行连接错误: {e}")
             return None
+    def read_json_data(self, port='COM27', baudrate=115200):
+        ser = None
+        try:
+            ser = serial.Serial(port, baudrate, timeout=1)
+
+            buffer = ""
+            while True:
+                if ser.in_waiting > 0:
+                    data = ser.read(ser.in_waiting).decode('utf-8', errors='ignore')
+                    buffer += data
+
+                    start_marker = '{'
+                    end_marker = '}'
+                    
+                    while start_marker in buffer and end_marker in buffer:
+                        start_index = buffer.index(start_marker)
+                        end_index = buffer.index(end_marker, start_index) + 1
+                        json_str = buffer[start_index:end_index]
+                        buffer = buffer[end_index:]
+
+                        try:
+                            logger.info(f"解析 JSON 数据: {json_str}")
+                            # 替换单引号为双引号
+                            json_str = re.sub(r"(?<!\\)'", '"', json_str)
+                            data = json.loads(json_str)
+                            formatted_data = {
+                                'acceleration': data['acc'],
+                                'gyroscope': data['gyr'],
+                                'magnetometer': data['mag']
+                            }
+                            if formatted_data:
+                                logger.info(f"九轴原始数据: {formatted_data}")
+                                physical_data = self.convert_to_physical_data(formatted_data)
+                                #logger.info(f"处理数据行: {physical_data}")
+                                return physical_data
+                        except json.JSONDecodeError as e:
+                            logger.error(f"无法解析数据: {json_str} 错误: {e}")
+        except serial.SerialException as e:
+            logger.error(f"串口通信错误: {e}")
+        except Exception as e:
+            logger.error(f"未知错误: {e}")
+
+
     def parse_serial_data(self, data):
         if len(data) != 22:
             logger.error("数据长度不正确")
@@ -105,13 +156,13 @@ class DataRetrieval:
             mag_x = int.from_bytes(data[12:14], byteorder='big', signed=True)
             mag_y = int.from_bytes(data[14:16], byteorder='big', signed=True)
             mag_z = int.from_bytes(data[16:18], byteorder='big', signed=True)
-
-            accel_x = self.convert_signed(accel_x)
-            accel_y = self.convert_signed(accel_y)
-            accel_z = self.convert_signed(accel_z)
-            gyro_x = self.convert_signed(gyro_x)
-            gyro_y = self.convert_signed(gyro_y)
-            gyro_z = self.convert_signed(gyro_z)
+            logger.info(f"九轴转换数据: {accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,mag_x,mag_y,mag_z}")
+            # accel_x = self.convert_signed(accel_x)
+            # accel_y = self.convert_signed(accel_y)
+            # accel_z = self.convert_signed(accel_z)
+            # gyro_x = self.convert_signed(gyro_x)
+            # gyro_y = self.convert_signed(gyro_y)
+            # gyro_z = self.convert_signed(gyro_z)
             # mag_x = self.convert_signed(mag_x)
             # mag_y = self.convert_signed(mag_y)
             # mag_z = self.convert_signed(mag_z)
@@ -145,7 +196,8 @@ class DataRetrieval:
 
 
         #gyro_sensitivity = 17.50 * 0.001 * (3.14159265358979323846 / 180.0)* 57.2958; #单位：rad/s/LSB
-        gyro_sensitivity = 17.50 * 0.001 ; #单位：rad/s/LSB
+        #gyro_sensitivity = 17.50 * 0.001 ; #单位：rad/s/LSB
+        gyro_sensitivity = 17.50 * 0.001/57.2958 ; #单位：度/s
         gyro_x = gyro[0] * gyro_sensitivity  # 转换为 rad/s
         gyro_y = gyro[1] * gyro_sensitivity  # 转换为 rad/s
         gyro_z = gyro[2] * gyro_sensitivity # 转换为 rad/s

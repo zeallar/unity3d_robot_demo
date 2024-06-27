@@ -145,9 +145,9 @@ class Calibration:
         magnetom_tmp = magnetom - self.MAGN_ELLIPSOID_CENTER
         magnetom_corrected = np.dot(self.MAGN_ELLIPSOID_TRANSFORM, magnetom_tmp)
         
-        data['magnetometer']['x'] = magnetom_corrected[0]
-        data['magnetometer']['y'] = magnetom_corrected[1]
-        data['magnetometer']['z'] = magnetom_corrected[2]
+        # data['magnetometer']['x'] = magnetom_corrected[0]
+        # data['magnetometer']['y'] = magnetom_corrected[1]
+        # data['magnetometer']['z'] = magnetom_corrected[2]
         return data
     # 将磁力计数据保存为CSV文件
     def save_magnetometer_data_to_csv(self, filename):

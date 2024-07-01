@@ -5,7 +5,7 @@ from utils.logger import Logger
 import json
 import re
 
-PHYPHOX_URL = "http://192.168.100.112/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
+PHYPHOX_URL = "http://192.168.100.113/get?accX&accY&accZ&gyroX&gyroY&gyroZ&magX&magY&magZ"
 
 logger = Logger(__name__)
 
@@ -98,7 +98,7 @@ class DataRetrieval:
         except serial.SerialException as e:
             logger.error(f"串行连接错误: {e}")
             return None
-    def read_json_data(self, port='COM27', baudrate=115200):
+    def read_json_data(self, port='COM27', baudrate=1000000):
         ser = None
         try:
             ser = serial.Serial(port, baudrate, timeout=1)
@@ -119,7 +119,7 @@ class DataRetrieval:
                         buffer = buffer[end_index:]
 
                         try:
-                            logger.info(f"解析 JSON 数据: {json_str}")
+                            #logger.info(f"解析 JSON 数据: {json_str}")
                             # 替换单引号为双引号
                             json_str = re.sub(r"(?<!\\)'", '"', json_str)
                             data = json.loads(json_str)
@@ -131,7 +131,7 @@ class DataRetrieval:
                             if formatted_data:
                                 logger.info(f"九轴原始数据: {formatted_data}")
                                 physical_data = self.convert_to_physical_data(formatted_data)
-                                #logger.info(f"处理数据行: {physical_data}")
+                                logger.info(f"处理数据行: {physical_data}")
                                 return physical_data
                         except json.JSONDecodeError as e:
                             logger.error(f"无法解析数据: {json_str} 错误: {e}")
@@ -196,8 +196,9 @@ class DataRetrieval:
 
 
         #gyro_sensitivity = 17.50 * 0.001 * (3.14159265358979323846 / 180.0)* 57.2958; #单位：rad/s/LSB
-        #gyro_sensitivity = 17.50 * 0.001 ; #单位：rad/s/LSB
-        gyro_sensitivity = 17.50 * 0.001/57.2958 ; #单位：度/s
+        gyro_sensitivity = 17.50 * 0.001 ; #单位：度/s
+        #gyro_sensitivity = 17.50 * 0.001 * (3.14159265358979323846 / 180.0); #单位：度/s
+        #gyro_sensitivity = 17.50 * 0.001/57.2958 ; #单位：rad/s/LSB
         gyro_x = gyro[0] * gyro_sensitivity  # 转换为 rad/s
         gyro_y = gyro[1] * gyro_sensitivity  # 转换为 rad/s
         gyro_z = gyro[2] * gyro_sensitivity # 转换为 rad/s
@@ -206,6 +207,8 @@ class DataRetrieval:
         # 转换为微特斯拉，假设量程扩展至±40µT
         # 新的量程比例因子
         mag_scale =0.1 #3200.0 / 32768.0#0.01  # LSB to μT, 根据实际情况调整
+        # mag_scale =1#mG
+        #mag_scale =0.1*1000#nt
         mag_x = mag[0] * mag_scale
         mag_y = mag[1] * mag_scale
         mag_z = mag[2] * mag_scale

@@ -90,7 +90,7 @@ def main():
         # 等待数据采集线程结束
         data_thread.join()
         #保存采集到的数据
-        #calibration.save_magnetometer_data_to_csv('magnetometer_data.csv')    
+        calibration.save_magnetometer_data_to_csv('magnetometer_data.csv')    
     elif calibrate.lower() == 'n':
         logger.info("Skipping calibration")
     else:
@@ -150,7 +150,8 @@ def main():
 
         time.sleep(0.01)
 def data_collection_thread(calibration, data_retrieval,source):
-    for _ in range(1000):  # 3 seconds of data at 100Hz
+    #for _ in range(2000):  # 3 seconds of data at 100Hz
+    for _ in range(300):
         if source == '1':
             sensor_data = data_retrieval.get_data_from_phyphox()
         elif source == '2':

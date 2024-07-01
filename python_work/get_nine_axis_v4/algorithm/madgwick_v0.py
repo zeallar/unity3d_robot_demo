@@ -1,6 +1,6 @@
 import numpy as np
 import math
-
+from typing import Tuple
 class Madgwick:
     def __init__(self, beta=0.1, dt=0.01):
         self.beta = beta
@@ -212,3 +212,40 @@ class Madgwick:
         self.prev_euler_angles += angle_diff
 
         return self.prev_euler_angles.tolist()
+    
+    def quaternion_to_rotation_matrix(self) -> np.ndarray:
+        w, x, y, z = self.q
+        R = np.array([
+            [1 - 2*y*y - 2*z*z, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
+            [2*x*y + 2*z*w, 1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w],
+            [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x*x - 2*y*y]
+        ])
+        return R
+
+    def rotation_matrix_to_euler_angles(self, R: np.ndarray) -> np.ndarray:
+        assert self.is_rotation_matrix(R)
+        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+        singular = sy < 1e-6
+
+        if not singular:
+            x = math.atan2(R[2, 1], R[2, 2])
+            y = math.atan2(-R[2, 0], sy)
+            z = math.atan2(R[1, 0], R[0, 0])
+        else:
+            x = math.atan2(-R[1, 2], R[1, 1])
+            y = math.atan2(-R[2, 0], sy)
+            z = 0
+
+        return np.array([x, y, z])
+
+    def is_rotation_matrix(self, R) -> bool:
+        Rt = np.transpose(R)
+        shouldBeIdentity = np.dot(Rt, R)
+        I = np.identity(3, dtype=R.dtype)
+        n = np.linalg.norm(I - shouldBeIdentity)
+        return n < 1e-6
+
+    def quaternion_to_euler(self) -> Tuple[float, float, float]:
+        R = self.quaternion_to_rotation_matrix()
+        euler = self.rotation_matrix_to_euler_angles(R)
+        return tuple(euler)

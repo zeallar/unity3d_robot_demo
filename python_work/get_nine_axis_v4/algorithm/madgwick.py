@@ -1,122 +1,149 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import math
+from algorithm.common.orientation import q_prod, q_conj, acc2q, ecompass
+from algorithm.utils.core import _assert_numerical_iterable
+from typing import Tuple
 
 class Madgwick:
-    def __init__(self, beta=0.1, dt=0.01):
-        self.beta = beta
-        self.dt = dt
-        self.q = np.array([1.0, 0.0, 0.0, 0.0])
-        self.prev_q = np.array([1.0, 0.0, 0.0, 0.0])
-        self.error_integral = np.zeros(3)
-        self.error_kp = 0.65
-        self.error_ki = 0.0
-        self.prev_euler_angles = np.zeros(3)
+    
+    def __init__(self, gyr: np.ndarray = None, acc: np.ndarray = None, mag: np.ndarray = None, **kwargs):
+        self.frequency: float = kwargs.get('frequency', 100.0)
+        self.Dt: float = kwargs.get('Dt', (1.0/self.frequency) if self.frequency else 0.01)
+        self.q0: np.ndarray = kwargs.get('q0', np.array([1.0, 0.0, 0.0, 0.0]))
+        self.beta: float = kwargs.get('beta', 1.5)
+        self._assert_validity_of_inputs()
 
-    def _assert_numerical_iterable(self, data, name):
-        if not isinstance(data, (np.ndarray, list, tuple)):
-            raise ValueError(f"{name} must be an array, list or tuple.")
-        if not np.issubdtype(np.array(data).dtype, np.number):
-            raise ValueError(f"{name} must contain numerical values.")
+    def _assert_validity_of_inputs(self):
+        for item in ["frequency", "Dt", "beta"]:
+            if isinstance(self.__getattribute__(item), bool):
+                raise TypeError(f"Parameter '{item}' must be numeric.")
+            if not isinstance(self.__getattribute__(item), (int, float)):
+                raise TypeError(f"Parameter '{item}' is not a non-zero number.")
+            if self.__getattribute__(item) <= 0.0:
+                raise ValueError(f"Parameter '{item}' must be a non-zero number.")
+        if self.q0 is not None:
+            if not isinstance(self.q0, (list, tuple, np.ndarray)):
+                raise TypeError(f"Parameter 'q0' must be an array. Got {type(self.q0)}.")
+            self.q0 = np.copy(self.q0)
+            if self.q0.shape != (4,):
+                raise ValueError(f"Parameter 'q0' must be an array of shape (4,). It is {self.q0.shape}.")
+            if not np.allclose(np.linalg.norm(self.q0), 1.0):
+                raise ValueError(f"Parameter 'q0' must be a versor (norm equal to 1.0). Its norm is equal to {np.linalg.norm(self.q0)}.")
 
-    def q_prod(self, q, r):
-        w0, x0, y0, z0 = q
-        w1, x1, y1, z1 = r
-        return np.array([
-            -x0 * x1 - y0 * y1 - z0 * z1 + w0 * w1,
-             x0 * w1 + y0 * z1 - z0 * y1 + w0 * x1,
-            -x0 * z1 + y0 * w1 + z0 * x1 + w0 * y1,
-             x0 * y1 - y0 * x1 + z0 * w1 + w0 * z1])
-
-    def q_conj(self, q):
-        q = np.copy(q)
-        q[1:] = -q[1:]
-        return q
-    #陀螺仪数据（gyr）：弧度每秒（rad/s）
-    #加速度计数据（acc）：g（重力加速度的倍数）
-    #磁力计数据（mag）：归一化的无量纲数据
-    def updateMARG(self, gyr: np.ndarray, acc: np.ndarray, mag: np.ndarray, dt: float = None, sensitivity: float = 1.0) -> np.ndarray:
-        self._assert_numerical_iterable(gyr, '三轴陀螺仪采样')
-        self._assert_numerical_iterable(acc, '三轴加速度计采样')
-        self._assert_numerical_iterable(mag, '三轴磁力计采样')
-
-        # # 确保使用弧度每秒作为陀螺仪数据的单位
-        # if np.max(np.abs(gyr)) > 10:  # 假定数据是度每秒
-        #     gyr = np.radians(gyr)  # 转换为弧度每秒
-
-        dt = self.dt if dt is None else dt
-
-        if np.linalg.norm(gyr) == 0:
-            return self.q
-
-        gyr = np.asarray(gyr).flatten()
-        qDot = 0.5 * self.q_prod(self.q, np.concatenate(([0], gyr))) * sensitivity
-
-        a_norm = np.linalg.norm(acc)
-        if a_norm > 0:
-            acc = acc / a_norm  # 归一化加速度计数据
-            mag = mag / np.linalg.norm(mag)  # 归一化磁力计数据
-            h = self.q_prod(self.q, self.q_prod(np.concatenate(([0], mag)), self.q_conj(self.q)))
-            bx = np.sqrt(h[1]**2 + h[2]**2)
-            bz = h[3]
-
-            f = np.array([
-                2.0 * (self.q[1] * self.q[3] - self.q[0] * self.q[2]) - acc[0],
-                2.0 * (self.q[0] * self.q[1] + self.q[2] * self.q[3]) - acc[1],
-                2.0 * (0.5 - self.q[1]**2 - self.q[2]**2) - acc[2],
-                2.0 * bx * (0.5 - self.q[2]**2 - self.q[3]**2) + 2.0 * bz * (self.q[1] * self.q[3] - self.q[0] * self.q[2]) - mag[0],
-                2.0 * bx * (self.q[1] * self.q[2] - self.q[0] * self.q[3]) + 2.0 * bz * (self.q[0] * self.q[1] + self.q[2] * self.q[3]) - mag[1],
-                2.0 * bx * (self.q[0] * self.q[2] + self.q[1] * self.q[3]) + 2.0 * bz * (0.5 - self.q[1]**2 - self.q[2]**2) - mag[2]
-            ])
-            J = np.array([
-                [-2.0 * self.q[2], 2.0 * self.q[3], -2.0 * self.q[0], 2.0 * self.q[1]],
-                [2.0 * self.q[1], 2.0 * self.q[0], 2.0 * self.q[3], 2.0 * self.q[2]],
-                [0.0, -4.0 * self.q[1], -4.0 * self.q[2], 0.0],
-                [-2.0 * bz * self.q[2], 2.0 * bz * self.q[3], -4.0 * bx * self.q[2] - 2.0 * bz * self.q[0], -4.0 * bx * self.q[3] + 2.0 * bz * self.q[1]],
-                [-2.0 * bx * self.q[3] + 2.0 * bz * self.q[1], 2.0 * bx * self.q[2] + 2.0 * bz * self.q[0], 2.0 * bx * self.q[1] + 2.0 * bz * self.q[3], -2.0 * bx * self.q[0] + 2.0 * bz * self.q[2]],
-                [2.0 * bx * self.q[2], 2.0 * bx * self.q[3] - 4.0 * bz * self.q[1], 2.0 * bx * self.q[0] - 4.0 * bz * self.q[2], 2.0 * bx * self.q[1]]
-            ])
-            gradient = J.T @ f
-            gradient /= np.linalg.norm(gradient)
-            qDot -= self.beta * gradient * sensitivity
-
-            self.error_integral += gradient[:3] * dt * sensitivity
-            self.error_integral = np.clip(self.error_integral, -0.035, 0.035)
-
-        new_q = self.q + qDot * dt
-        new_q /= np.linalg.norm(new_q)
+    def updateMARG(self, q: np.ndarray, gyr: np.ndarray, acc: np.ndarray, mag: np.ndarray, dt: float = None) -> np.ndarray:
+        _assert_numerical_iterable(q, 'Quaternion')
+        _assert_numerical_iterable(gyr, 'Tri-axial gyroscope sample')
+        _assert_numerical_iterable(acc, 'Tri-axial accelerometer sample')
+        _assert_numerical_iterable(mag, 'Tri-axial magnetometer sample')
         
-        self.q = new_q
-
-        return self.q
-
-    def get_euler_angles(self):
-        q1, q2, q3, q4 = self.q
-        pitch = math.asin(-2.0 * (q2 * q4 - q1 * q3))
-        roll = math.atan2(2.0 * (q1 * q2 + q3 * q4), 1.0 - 2.0 * (q2 * q2 + q3 * q3))
-        yaw = math.atan2(2.0 * (q1 * q4 + q2 * q3), 1.0 - 2.0 * (q3 * q3 + q4 * q4))
-
-        current_euler_angles = np.array([pitch, roll, yaw])
-        angle_diff = current_euler_angles - self.prev_euler_angles
-
-        angle_diff = (angle_diff + np.pi) % (2 * np.pi) - np.pi
-
-        self.prev_euler_angles += angle_diff
-
-        return self.prev_euler_angles.tolist()
-
-    def get_smoothed_euler_angles(self):
-        delta_q = self.q_prod(self.q, self.q_conj(self.prev_q))
-        self.prev_q = np.copy(self.q)
-
-        q1, q2, q3, q4 = delta_q
-        pitch = math.asin(2.0 * (q1 * q3 - q4 * q2))
-        roll = math.atan2(2.0 * (q1 * q2 + q3 * q4), 1.0 - 2.0 * (q2 * q2 + q3 * q3))
-        yaw = math.atan2(2.0 * (q1 * q4 + q2 * q3), 1.0 - 2.0 * (q3 * q3 + q4 * q4))
-
-        delta_euler_angles = np.array([pitch, roll, yaw])
+        dt = self.Dt if dt is None else dt
         
-        delta_euler_angles = (delta_euler_angles + np.pi) % (2 * np.pi) - np.pi
+        if gyr is None or not np.linalg.norm(gyr) > 0:
+            return q
+        if mag is None or not np.linalg.norm(mag) > 0:
+            return q  # If no magnetometer data, use only accelerometer and gyroscope
+        
+        q1, q2, q3, q4 = q
 
-        self.prev_euler_angles += delta_euler_angles
+        # Normalize accelerometer measurement
+        acc = acc / np.linalg.norm(acc)
+        ax, ay, az = acc[0], acc[1], acc[2]
 
-        return self.prev_euler_angles.tolist()
+        # Normalize magnetometer measurement
+        mag = mag / np.linalg.norm(mag)
+        mx, my, mz = mag[0], mag[1], mag[2]
+
+        # Auxiliary variables to avoid repeated arithmetic
+        _2q1mx = 2.0 * q1 * mx
+        _2q1my = 2.0 * q1 * my
+        _2q1mz = 2.0 * q1 * mz
+        _2q2mx = 2.0 * q2 * mx
+        _2q1 = 2.0 * q1
+        _2q2 = 2.0 * q2
+        _2q3 = 2.0 * q3
+        _2q4 = 2.0 * q4
+        _2q1q3 = 2.0 * q1 * q3
+        _2q3q4 = 2.0 * q3 * q4
+        q1q1 = q1 * q1
+        q1q2 = q1 * q2
+        q1q3 = q1 * q3
+        q1q4 = q1 * q4
+        q2q2 = q2 * q2
+        q2q3 = q2 * q3
+        q2q4 = q2 * q4
+        q3q3 = q3 * q3
+        q3q4 = q3 * q4
+        q4q4 = q4 * q4
+
+        # Reference direction of Earth's magnetic field
+        hx = mx * q1q1 - _2q1my * q4 + _2q1mz * q3 + mx * q2q2 + _2q2 * my * q3 + _2q2 * mz * q4 - mx * q3q3 - mx * q4q4
+        hy = _2q1mx * q4 + my * q1q1 - _2q1mz * q2 + _2q2mx * q3 - my * q2q2 + my * q3q3 + _2q3 * mz * q4 - my * q4q4
+        _2bx = np.sqrt(hx * hx + hy * hy)
+        _2bz = -_2q1mx * q3 + _2q1my * q2 + mz * q1q1 + _2q2mx * q4 - mz * q2q2 + _2q3 * my * q4 - mz * q3q3 + mz * q4q4
+        _4bx = 2.0 * _2bx
+        _4bz = 2.0 * _2bz
+
+        # Gradient descent algorithm corrective step
+        s1 = -_2q3 * (2.0 * q2q4 - _2q1q3 - ax) + _2q2 * (2.0 * q1q2 + _2q3q4 - ay) - _2bz * q3 * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (-_2bx * q4 + _2bz * q2) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + _2bx * q3 * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)
+        s2 = _2q4 * (2.0 * q2q4 - _2q1q3 - ax) + _2q1 * (2.0 * q1q2 + _2q3q4 - ay) - 4.0 * q2 * (1.0 - 2.0 * q2q2 - 2.0 * q3q3 - az) + _2bz * q4 * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (_2bx * q3 + _2bz * q1) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + (_2bx * q4 - _4bz * q2) * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)
+        s3 = -_2q1 * (2.0 * q2q4 - _2q1q3 - ax) + _2q4 * (2.0 * q1q2 + _2q3q4 - ay) - 4.0 * q3 * (1.0 - 2.0 * q2q2 - 2.0 * q3q3 - az) + (-_4bx * q3 - _2bz * q1) * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (_2bx * q2 + _2bz * q4) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + (_2bx * q1 - _4bz * q3) * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)
+        s4 = _2q2 * (2.0 * q2q4 - _2q1q3 - ax) + _2q3 * (2.0 * q1q2 + _2q3q4 - ay) + (-_4bx * q4 + _2bz * q2) * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (-_2bx * q1 + _2bz * q3) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + _2bx * q2 * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)
+
+        norm = np.linalg.norm([s1, s2, s3, s4])
+        s1, s2, s3, s4 = s1 / norm, s2 / norm, s3 / norm, s4 / norm
+
+        # Compute rate of change of quaternion using more stable integration
+        qDot1 = 0.5 * (-q2 * gyr[0] - q3 * gyr[1] - q4 * gyr[2]) - self.beta * s1
+        qDot2 = 0.5 * (q1 * gyr[0] + q3 * gyr[2] - q4 * gyr[1]) - self.beta * s2
+        qDot3 = 0.5 * (q1 * gyr[1] - q2 * gyr[2] + q4 * gyr[0]) - self.beta * s3
+        qDot4 = 0.5 * (q1 * gyr[2] + q2 * gyr[1] - q3 * gyr[0]) - self.beta * s4
+
+        # Integrate to yield quaternion
+        q1 += qDot1 * dt
+        q2 += qDot2 * dt
+        q3 += qDot3 * dt
+        q4 += qDot4 * dt
+
+        norm = np.linalg.norm([q1, q2, q3, q4])
+        q1, q2, q3, q4 = q1 / norm, q2 / norm, q3 / norm, q4 / norm
+
+        return np.array([q1, q2, q3, q4])
+    
+    def quaternion_to_rotation_matrix(self) -> np.ndarray:
+        w, x, y, z = self.q0
+        R = np.array([
+            [1 - 2*y*y - 2*z*z, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
+            [2*x*y + 2*z*w, 1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w],
+            [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x*x - 2*y*y]
+        ])
+        return R
+
+    def rotation_matrix_to_euler_angles(self, R: np.ndarray) -> np.ndarray:
+        assert self.is_rotation_matrix(R)
+        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+        singular = sy < 1e-6
+
+        if not singular:
+            x = math.atan2(R[2, 1], R[2, 2])
+            y = math.atan2(-R[2, 0], sy)
+            z = math.atan2(R[1, 0], R[0, 0])
+        else:
+            x = math.atan2(-R[1, 2], R[1, 1])
+            y = math.atan2(-R[2, 0], sy)
+            z = 0
+
+        return np.array([x, y, z])
+
+    def is_rotation_matrix(self, R) -> bool:
+        Rt = np.transpose(R)
+        shouldBeIdentity = np.dot(Rt, R)
+        I = np.identity(3, dtype=R.dtype)
+        n = np.linalg.norm(I - shouldBeIdentity)
+        return n < 1e-6
+
+    def quaternion_to_euler(self) -> Tuple[float, float, float]:
+        R = self.quaternion_to_rotation_matrix()
+        euler = self.rotation_matrix_to_euler_angles(R)
+        return tuple(euler)

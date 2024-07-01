@@ -1,9 +1,10 @@
 import numpy as np
 import math
 from typing import Tuple
-
+from utils.logger import Logger
+logger = Logger(__name__)
 class MadgwickAHRS:
-    def __init__(self, beta: float = 1.5):
+    def __init__(self, beta: float = 0.01):
         self.beta = beta
         self.q = np.array([1.0, 0.0, 0.0, 0.0])
 
@@ -14,25 +15,31 @@ class MadgwickAHRS:
         return v / norm
 
     def update(self, ax: float, ay: float, az: float, 
-               gx: float, gy: float, gz: float, 
+               gx: float, gy: float, gz: float,
                mx: float, my: float, mz: float, deltat: float):
         
         q1, q2, q3, q4 = self.q
+
+        # 打印原始九轴数据
+        logger.debug(f"Original data - Acc: [{ax}, {ay}, {az}], Gyro: [{gx}, {gy}, {gz}], Mag: [{mx}, {my}, {mz}]")
+        
+        logger.debug(f"Initial quaternion: {self.q}")
         
         # Normalize accelerometer measurement
         a = self.normalize(np.array([ax, ay, az]))
         ax, ay, az = a[0], a[1], a[2]
+        logger.debug(f"Normalized accelerometer: [{ax}, {ay}, {az}]")
 
         # Normalize magnetometer measurement
         m = self.normalize(np.array([mx, my, mz]))
         mx, my, mz = m[0], m[1], m[2]
+        logger.debug(f"Normalized magnetometer: [{mx}, {my}, {mz}]")
 
         # Auxiliary variables to avoid repeated arithmetic
         _2q1mx = 2.0 * q1 * mx
         _2q1my = 2.0 * q1 * my
         _2q1mz = 2.0 * q1 * mz
         _2q2mx = 2.0 * q2 * mx
-        _4bx, _4bz = 0.0, 0.0
         _2q1 = 2.0 * q1
         _2q2 = 2.0 * q2
         _2q3 = 2.0 * q3
@@ -58,14 +65,26 @@ class MadgwickAHRS:
         _4bx = 2.0 * _2bx
         _4bz = 2.0 * _2bz
 
+        logger.debug(f"hx: {hx}, hy: {hy}, _2bx: {_2bx}, _2bz: {_2bz}")
+
         # Gradient descent algorithm corrective step
         s1 = -_2q3 * (2.0 * q2q4 - _2q1q3 - ax) + _2q2 * (2.0 * q1q2 + _2q3q4 - ay) - _2bz * q3 * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (-_2bx * q4 + _2bz * q2) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + _2bx * q3 * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)
         s2 = _2q4 * (2.0 * q2q4 - _2q1q3 - ax) + _2q1 * (2.0 * q1q2 + _2q3q4 - ay) - 4.0 * q2 * (1.0 - 2.0 * q2q2 - 2.0 * q3q3 - az) + _2bz * q4 * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (_2bx * q3 + _2bz * q1) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + (_2bx * q4 - _4bz * q2) * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)
         s3 = -_2q1 * (2.0 * q2q4 - _2q1q3 - ax) + _2q4 * (2.0 * q1q2 + _2q3q4 - ay) - 4.0 * q3 * (1.0 - 2.0 * q2q2 - 2.0 * q3q3 - az) + (-_4bx * q3 - _2bz * q1) * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (_2bx * q2 + _2bz * q4) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + (_2bx * q1 - _4bz * q3) * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)
         s4 = _2q2 * (2.0 * q2q4 - _2q1q3 - ax) + _2q3 * (2.0 * q1q2 + _2q3q4 - ay) + (-_4bx * q4 + _2bz * q2) * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx) + (-_2bx * q1 + _2bz * q3) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my) + _2bx * q2 * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)
         
-        norm = self.normalize(np.array([s1, s2, s3, s4]))
-        s1, s2, s3, s4 = norm[0], norm[1], norm[2], norm[3]
+        logger.debug(f"s1 intermediate: {-_2q3 * (2.0 * q2q4 - _2q1q3 - ax)}, {- _2bz * q3 * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx)}, {(-_2bx * q4 + _2bz * q2) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my)}, {_2bx * q3 * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)}")
+        logger.debug(f"s2 intermediate: {_2q4 * (2.0 * q2q4 - _2q1q3 - ax)}, {_2bz * q4 * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx)}, {(_2bx * q3 + _2bz * q1) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my)}, {(_2bx * q4 - _4bz * q2) * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)}")
+        logger.debug(f"s3 intermediate: {-_2q1 * (2.0 * q2q4 - _2q1q3 - ax)}, {(-_4bx * q3 - _2bz * q1) * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx)}, {(_2bx * q2 + _2bz * q4) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my)}, {(_2bx * q1 - _4bz * q3) * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)}")
+        logger.debug(f"s4 intermediate: {_2q2 * (2.0 * q2q4 - _2q1q3 - ax)}, {(-_4bx * q4 + _2bz * q2) * (_2bx * (0.5 - q3q3 - q4q4) + _2bz * (q2q4 - q1q3) - mx)}, {(-_2bx * q1 + _2bz * q3) * (_2bx * (q2q3 - q1q4) + _2bz * (q1q2 + q3q4) - my)}, {_2bx * q2 * (_2bx * (q1q3 + q2q4) + _2bz * (0.5 - q2q2 - q3q3) - mz)}")
+        
+        logger.debug(f"s1: {s1}, s2: {s2}, s3: {s3}, s4: {s4}")
+
+        norm = np.linalg.norm([s1, s2, s3, s4])
+        if norm > 0:
+            s1, s2, s3, s4 = s1 / norm, s2 / norm, s3 / norm, s4 / norm
+
+        logger.debug(f"Normalized s values: s1: {s1}, s2: {s2}, s3: {s3}, s4: {s4}")
 
         # Compute rate of change of quaternion
         qDot1 = 0.5 * (-q2 * gx - q3 * gy - q4 * gz) - self.beta * s1
@@ -73,42 +92,57 @@ class MadgwickAHRS:
         qDot3 = 0.5 * (q1 * gy - q2 * gz + q4 * gx) - self.beta * s3
         qDot4 = 0.5 * (q1 * gz + q2 * gy - q3 * gx) - self.beta * s4
 
+        logger.debug(f"qDot1: {qDot1}, qDot2: {qDot2}, qDot3: {qDot3}, qDot4: {qDot4}")
+
         # Integrate to yield quaternion
         q1 += qDot1 * deltat
         q2 += qDot2 * deltat
         q3 += qDot3 * deltat
         q4 += qDot4 * deltat
         
-        norm = self.normalize(np.array([q1, q2, q3, q4]))
-        self.q[0], self.q[1], self.q[2], self.q[3] = norm[0], norm[1], norm[2], norm[3]
+        norm = np.linalg.norm([q1, q2, q3, q4])
+        if norm > 0:
+            self.q[0], self.q[1], self.q[2], self.q[3] = q1 / norm, q2 / norm, q3 / norm, q4 / norm
+
+        logger.debug(f"Updated quaternion: {self.q}\n")
+
 
     def get_quaternion(self) -> np.ndarray:
         return self.q
+    
+    def quaternion_to_rotation_matrix(self) -> np.ndarray:
+        w, x, y, z = self.q
+        R = np.array([
+            [1 - 2*y*y - 2*z*z, 2*x*y - 2*z*w, 2*x*z + 2*y*w],
+            [2*x*y + 2*z*w, 1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w],
+            [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x*x - 2*y*y]
+        ])
+        return R
+
+    def rotation_matrix_to_euler_angles(self, R: np.ndarray) -> np.ndarray:
+        assert self.is_rotation_matrix(R)
+        sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+        singular = sy < 1e-6
+
+        if not singular:
+            x = math.atan2(R[2, 1], R[2, 2])
+            y = math.atan2(-R[2, 0], sy)
+            z = math.atan2(R[1, 0], R[0, 0])
+        else:
+            x = math.atan2(-R[1, 2], R[1, 1])
+            y = math.atan2(-R[2, 0], sy)
+            z = 0
+
+        return np.array([x, y, z])
+
+    def is_rotation_matrix(self, R) -> bool:
+        Rt = np.transpose(R)
+        shouldBeIdentity = np.dot(Rt, R)
+        I = np.identity(3, dtype=R.dtype)
+        n = np.linalg.norm(I - shouldBeIdentity)
+        return n < 1e-6
 
     def quaternion_to_euler(self) -> Tuple[float, float, float]:
-        w, x, y, z = self.q
-
-        # roll (x-axis rotation)
-        sinr_cosp = 2 * (w * x + y * z)
-        cosr_cosp = 1 - 2 * (x * x + y * y)
-        roll = math.atan2(sinr_cosp, cosr_cosp)
-
-        # pitch (y-axis rotation)
-        sinp = 2 * (w * y - z * x)
-        if abs(sinp) >= 1:
-            pitch = math.copysign(math.pi / 2, sinp)
-        else:
-            pitch = math.asin(sinp)
-
-        # yaw (z-axis rotation)
-        siny_cosp = 2 * (w * z + x * y)
-        cosy_cosp = 1 - 2 * (y * y + z * z)
-        yaw = math.atan2(siny_cosp, cosy_cosp)
-
-        return roll, pitch, yaw
-
-# Example usage
-# madgwick = MadgwickAHRS()
-# madgwick.update(ax, ay, az, gx, gy, gz, mx, my, mz, deltat)
-# euler_angles = madgwick.quaternion_to_euler()
-# print("Euler Angles:", euler_angles)
+        R = self.quaternion_to_rotation_matrix()
+        euler = self.rotation_matrix_to_euler_angles(R)
+        return tuple(euler)

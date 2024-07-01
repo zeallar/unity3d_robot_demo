@@ -6,25 +6,45 @@ from algorithm.madgwickFilter import MadgwickAHRS
 from data.data_retrieval import DataRetrieval  # 假设这个模块用于从串口获取数据
 from transmit.tcp_server import TCPServer
 from algorithm.pose_calculation import PoseModule
-from algorithm.madgwick_v0 import Madgwick
-from algorithm.origin_madgwick import Madgwick
+from algorithm.madgwick import Madgwick
+#from algorithm.madgwick_ahrs import Madgwick
 import numpy as np
+from data import filters 
+from data.window_filter import WindowFilter
+from data.kalman_filter import MultiAxisKalmanFilter
+from algorithm.MahonyAHRS import MahonyAHRS
+from utils.logger import Logger
+logger = Logger(__name__)
 # Constants
 GRAVITY = 9.802
-#这是手机的
+#这是手机的rad/s
 # GYRO_X_OFFSET = 0.00337001938739419
 # GYRO_Y_OFFSET = 0.0005921793470098631
 # GYRO_Z_OFFSET = 0.00255169917738042
 # ACCEL_X_OFFSET = 0.006626719665527345
 # ACCEL_Y_OFFSET = 0.041801074218750005
 # ACCEL_Z_OFFSET = 9.8
-#这个是产品的
-GYRO_X_OFFSET = 0.020479999999999998
-GYRO_Y_OFFSET = -0.06695000000000002
-GYRO_Z_OFFSET = -0.11270000000000004
+#这个是产品的rad/s
+# GYRO_X_OFFSET = 0.020479999999999998
+# GYRO_Y_OFFSET = -0.06695000000000002
+# GYRO_Z_OFFSET = -0.11270000000000004
+# ACCEL_X_OFFSET = -0.28642000000000006
+# ACCEL_Y_OFFSET = 0.0023799999999999997
+# ACCEL_Z_OFFSET = 9.975689999999998
+#这个是产品的度/s
+GYRO_X_OFFSET = 4.337833333333333
+GYRO_Y_OFFSET = -3.3301666666666665
+GYRO_Z_OFFSET = -2.0822000000000003
 ACCEL_X_OFFSET = -0.28642000000000006
 ACCEL_Y_OFFSET = 0.0023799999999999997
 ACCEL_Z_OFFSET = 9.975689999999998
+#这个是产品的度/s * (3.14159265358979323846 / 180.0)
+# GYRO_X_OFFSET = 0.07207357859531774
+# GYRO_Y_OFFSET = -0.05832775919732442
+# GYRO_Z_OFFSET = -0.034314381270903006
+# ACCEL_X_OFFSET = -0.28642000000000006
+# ACCEL_Y_OFFSET = 0.0023799999999999997
+# ACCEL_Z_OFFSET = 9.975689999999998
 #这是手机的
 # MAGN_ELLIPSOID_CENTER = [-0.010116, 0.0202537, 0.988309]
 # MAGN_ELLIPSOID_TRANSFORM = [
@@ -32,15 +52,24 @@ ACCEL_Z_OFFSET = 9.975689999999998
 #     [0.0124029, 0.994026, 6.33932e-05],
 #     [-0.00955096, 6.33932e-05, 0.943093]
 # ]
-#这是产品的
+#这是产品的v1
+# MAGN_ELLIPSOID_CENTER = [-6.03386, -10.1709, -7.15779]
+# MAGN_ELLIPSOID_TRANSFORM = [
+#     [0.968578, 0.000440177, 0.0177124],
+#     [0.000440177, 0.994927, -0.0111642],
+#     [0.0177124, -0.0111642, 0.9665]
+# ]
+#这是产品的v2
 MAGN_ELLIPSOID_CENTER = [-5.96847, -8.53266, -6.55064]
 MAGN_ELLIPSOID_TRANSFORM = [
-    [0.968578, 0.000440177, 0.0177124],
-    [0.000440177, 0.994927, -0.0111642],
-    [0.0177124, -0.0111642, 0.9665]
+    [0.974685, -0.00672609, -0.000430064],
+    [-0.00672609, 0.996443, 0.00602083],
+    [-0.000430064, 0.00602083, 0.978725]
 ]
 def get_euler_angles():
     return pose.rol, pose.pit, pose.yaw
+def get_quaternion():
+    return pose.quaternion
 # AHRS initialization
 def get_nine_axis():
     return pose.a_x, pose.a_y, pose.a_z,pose.g_x, pose.g_y, pose.g_z,pose.m_x, pose.m_y, pose.m_z
@@ -128,6 +157,7 @@ def compensate_sensor_errors(accel, magnetom, gyro):
     accel[0] -= ACCEL_X_OFFSET
     accel[1] -= ACCEL_Y_OFFSET
     accel[2] -= (ACCEL_Z_OFFSET- GRAVITY )
+    # accel[2] -= (ACCEL_Z_OFFSET)
 
     # Compensate magnetometer error
     #magnetom_tmp = [magnetom[i] - MAGN_ELLIPSOID_CENTER[i] for i in range(3)]
@@ -165,9 +195,14 @@ def main():
     global pose
     pose = PoseModule()
     ahrs = MadgwickAHRS()
-    madgwick = Madgwick(beta=0.1, dt=0.01)
+    mahony_ahrs = MahonyAHRS()
+    madgwick = Madgwick()
     global data_retrieval 
     data_retrieval = DataRetrieval()
+    #filter = WindowFilter(window_size=10)  # 创建窗口滤波器对象.
+    # 初始化卡尔曼滤波器
+    kf = MultiAxisKalmanFilter()
+
     while True:
         accel, magnetom, gyro = read_sensors()
         accel, magnetom, gyro = compensate_sensor_errors(accel, magnetom, gyro)
@@ -175,25 +210,54 @@ def main():
         time_now = time.time()
         deltat = time_now - time_former
         time_former = time_now
+        acc_scale=100
+        mag_scale=1000
+        # pose.a_x, pose.a_y, pose.a_z=accel[0]*acc_scale, accel[1]*acc_scale, accel[2]*acc_scale
         pose.a_x, pose.a_y, pose.a_z=accel[0], accel[1], accel[2]
         pose.g_x, pose.g_y, pose.g_z=gyro[0], gyro[1], gyro[2]
+        
+        # pose.m_x, pose.m_y, pose.m_z=magnetom[0]*mag_scale, magnetom[1]*mag_scale, magnetom[2]*mag_scale
         pose.m_x, pose.m_y, pose.m_z=magnetom[0], magnetom[1], magnetom[2]
 
-        pose.a_x, pose.a_y, pose.a_z=preprocess_gyro_data(pose.a_x, pose.a_y, pose.a_z,0.15)
-        pose.g_x, pose.g_y, pose.g_z=preprocess_gyro_data(pose.g_x, pose.g_y, pose.g_z,0.5)
 
-        ahrs.update(accel[0], accel[1], accel[2],gyro[0], gyro[1], gyro[2], magnetom[0], magnetom[1], magnetom[2], deltat)
-        q = ahrs.get_quaternion()
-        roll, pitch, yaw= ahrs.quaternion_to_euler()
-        yaw += 0.8
-        if yaw > math.pi:
-            yaw -= 2 * math.pi
+        # pose.a_x, pose.a_y, pose.a_z=preprocess_gyro_data(pose.a_x, pose.a_y, pose.a_z,0.5)
+        # pose.g_x, pose.g_y, pose.g_z=preprocess_gyro_data(pose.g_x, pose.g_y, pose.g_z,0.5)
+        # if abs(pose.a_z) < 0.5:
+        #     pose.a_z = 9.8
+        # pose.m_x, pose.m_y, pose.m_z=40,1,-21
+        # pose.m_x, pose.m_y, pose.m_z=-18.8,30.1,-15.5
 
+        # ahrs.update(pose.a_x, pose.a_y, pose.a_z,pose.g_x, pose.g_y, pose.g_z,pose.m_x, pose.m_y, pose.m_z, deltat)
+        # q=ahrs.get_quaternion()
+        # pose.quaternion = list(q)
+        # roll, pitch, yaw= ahrs.quaternion_to_euler()
+
+        mahony_ahrs.update(pose.g_x, pose.g_y, pose.g_z,pose.a_x, pose.a_y, pose.a_z,pose.m_x, pose.m_y, pose.m_z)
+         # 获取姿态角度
+        roll = mahony_ahrs.get_roll()
+        pitch = mahony_ahrs.get_pitch()
+        yaw = mahony_ahrs.get_yaw()
+        # # 处理数据并存储结果
+        # filtered_data = kf.apply_filter(roll, pitch, yaw)
+        # send_to_pc(filtered_data[0], filtered_data[1], filtered_data[2])
         send_to_pc(roll, pitch, yaw)
+
+        # acc_data = np.array([pose.a_x, pose.a_y, pose.a_z])
+        # gyro_data = np.array([pose.g_x, pose.g_y, pose.g_z])
+        # mag_data = np.array([pose.m_x, pose.m_y, pose.m_z])
+        # updated_quaternion = madgwick.updateMARG(madgwick.q0, gyro_data, acc_data, mag_data,dt=deltat)
+        # madgwick.q0=updated_quaternion
+        # roll, pitch, yaw = madgwick.quaternion_to_euler()
+        # send_to_pc(roll, pitch, yaw)
+        # logger.info(f"Original data - Acc: [{pose.a_x}, {pose.a_y}, {pose.a_z}], Gyro: [{pose.g_x}, {pose.g_y}, {pose.g_z}], Mag: [{pose.m_x}, {pose.m_y}, {pose.m_z}]")
+        # pose.calculatePose_Module(deltat,1)
+
         time.sleep(0.01)
 
 if __name__ == "__main__":
     # tcp_thread = threading.Thread(target=TCPServer().start, args=(get_nine_axis,))
     tcp_thread = threading.Thread(target=TCPServer().start, args=(get_euler_angles,))
+    # tcp_thread = threading.Thread(target=TCPServer().start, args=(get_quaternion,))
+    
     tcp_thread.start()
     main()

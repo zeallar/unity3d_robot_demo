@@ -1,4 +1,9 @@
 #VOFA角度模式
+#算法参考：https://github.com/769484623/MahonyAHRSWithMPU9250/blob/master/USR/MahonyAHRS.c
+# Madgwick's implementation of Mayhony's AHRS algorithm.
+# See: http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/
+# Algorithm paper:
+# http://ieeexplore.ieee.org/xpl/login.jsp?tp=&arnumber=4608934&url=http%3A%2F%2Fieeexplore.ieee.org%2Fstamp%2Fstamp.jsp%3Ftp%3D%26arnumber%3D4608934
 import numpy as np
 
 class MahonyAHRS:
